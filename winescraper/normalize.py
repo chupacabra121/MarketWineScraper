@@ -43,13 +43,22 @@ _GRAPES = [
     "mustoasa de maderat", "frincusa", "francusa", "plavaie", "galbena de odobesti",
     "sauvignon", "aligote", "viognier", "verdejo", "albarino", "vermentino",
     "glera", "macabeu", "parellada", "xarel-lo", "trebbiano", "garganega",
-    "cotnari", "moscato", "muscat", "prosecco", "corvina", "rondinella",
+    "moscato", "muscat", "prosecco", "corvina", "rondinella",
     "blaufrankisch", "welschriesling", "silvaner", "furmint", "cserszegi",
     "carignan", "mourvedre", "cinsault", "petit verdot", "cabernet franc",
     "touriga nacional", "tinta roriz", "bonarda", "torrontes", "pinotage",
     "chenin blanc", "colombard", "ugni blanc", "marselan", "saperavi",
 ]
 _GRAPES_SORTED = sorted(_GRAPES, key=len, reverse=True)
+
+# Auchan and METRO populate their grape field with blend descriptors rather than
+# a variety. They are not grapes and would otherwise rank among the top varieties.
+NOT_A_GRAPE = {"cuvee", "cupaj", "blend", "sortiment", "assemblage", "mix", "cotnari"}
+
+
+def is_grape(value: str) -> bool:
+    """Whether a retailer-supplied variety string names an actual grape."""
+    return bool(value) and fold(value).strip() not in NOT_A_GRAPE
 
 _SPARKLING_WORDS = [
     "spumant", "spumante", "prosecco", "champagne", "sampanie", "cava",
@@ -180,13 +189,20 @@ def parse_abv(text: str) -> float | None:
     return None
 
 
-def parse_vintage(text: str) -> int | None:
-    """Extract a plausible vintage year from a title."""
+def parse_vintage(text: str, brand: str | None = None) -> int | None:
+    """Extract a plausible vintage year from a title.
+
+    A year that also appears in the brand is part of the label's name, not a
+    vintage — "Sarica Niculitel 1958" and Penny's "1958" range are both brands.
+    """
     if not text:
         return None
     current = datetime.now().year
+    brand_text = brand or ""
     for match in _VINTAGE_RE.finditer(text):
         year = int(match.group(1))
+        if year in (int(y) for y in _VINTAGE_RE.findall(brand_text)):
+            continue
         if 1950 <= year <= current:
             return year
     return None
@@ -293,13 +309,15 @@ def enrich(product) -> None:
     if product.abv is None:
         product.abv = parse_abv(product.name)
     if product.vintage is None:
-        product.vintage = parse_vintage(product.name)
+        product.vintage = parse_vintage(product.name, product.brand)
     if product.colour is None:
         product.colour = parse_colour(text)
     if product.sweetness is None:
         product.sweetness = parse_sweetness(text)
     if product.sparkling is None:
         product.sparkling = is_sparkling(text)
+    if product.grape_varieties:
+        product.grape_varieties = [g for g in product.grape_varieties if is_grape(g)]
     if not product.grape_varieties:
         product.grape_varieties = parse_grapes(product.name)
     if product.unit_price is None and product.price and product.volume_l:

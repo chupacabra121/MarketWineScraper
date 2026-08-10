@@ -93,7 +93,23 @@ def load_rows():
     rows = [dict(r) for r in conn.execute(sql)]
     # One Carrefour listing carries a 9999 placeholder price for an item that is
     # really ~20 lei; it would distort every max and mean it touched.
-    return [r for r in rows if not (r.get("price") and r["price"] >= 9999)]
+    rows = [r for r in rows if not (r.get("price") and r["price"] >= 9999)]
+    # Apply the same cleaning the scraper now does, so a workbook built from an
+    # older database matches one built from a fresh scrape: blend descriptors are
+    # not grape varieties, and a year inside a brand name is not a vintage.
+    for r in rows:
+        grapes = [g.strip() for g in (r.get("grape_varieties") or "").split(",") if g.strip()]
+        r["grape_varieties"] = ", ".join(g for g in grapes if _is_grape(g)) or None
+        if r.get("vintage") and str(r["vintage"]) in (r.get("brand") or ""):
+            r["vintage"] = None
+    return rows
+
+
+NOT_A_GRAPE = {"cuvee", "cupaj", "blend", "sortiment", "assemblage", "mix", "cotnari"}
+
+
+def _is_grape(value):
+    return fold(value).strip() not in NOT_A_GRAPE
 
 
 HEADERS = [

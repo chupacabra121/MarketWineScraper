@@ -172,3 +172,31 @@ def test_enrich_reads_sparkling_from_leaf_category():
                           category_path="Bauturi si Tutun/Vin si Sampanie/Vin spumant")
     enrich(product)
     assert product.sparkling is True
+
+
+def test_blend_descriptors_are_not_grapes():
+    """Auchan and METRO put 'Cuvée'/'Cupaj' in the grape field; they are blends."""
+    from winescraper.normalize import is_grape
+    assert is_grape("Cabernet Sauvignon") is True
+    assert is_grape("Cuvée") is False
+    assert is_grape("Cupaj") is False
+    # Cotnari is a region and a producer, not a variety.
+    assert is_grape("Cotnari") is False
+    assert is_grape("Grasa de Cotnari") is True
+
+
+def test_year_in_brand_is_not_a_vintage():
+    """'Sarica Niculitel 1958' and Penny's '1958' range are label names."""
+    assert parse_vintage("Vin alb demisec Sarica Niculitel 1958, 0.75 l",
+                         brand="Sarica Niculitel 1958") is None
+    assert parse_vintage("1958 VIN ALB DEMISEC", brand="1958") is None
+    # A real vintage alongside a year-free brand still parses.
+    assert parse_vintage("Vin rosu sec Domeniul Coroanei 2018", brand="Domeniul Coroanei") == 2018
+
+
+def test_enrich_drops_blend_descriptors_from_supplied_varieties():
+    product = WineProduct(retailer="metro", external_id="1",
+                          name="BUDUREASCA CLASIC FUME Blanc 0,75 L",
+                          grape_varieties=["Cuvée"])
+    enrich(product)
+    assert "Cuvée" not in product.grape_varieties

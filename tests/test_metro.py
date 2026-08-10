@@ -107,7 +107,8 @@ def test_volume_from_net_content_volume(adapter):
 
 def test_characteristics_matched_after_diacritic_folding(adapter):
     p = adapter._to_product("BTY-X796899", VARIANT, BUNDLE, SPI, "vinuri-albe")
-    assert p.grape_varieties == ["Feteasca Alba", "Cotnari"]
+    # "Cotnari" is filtered out: METRO lists the region alongside the variety.
+    assert p.grape_varieties == ["Feteasca Alba"]
     assert p.country == "România"
     assert p.region == "Podgoria Cotnari"
     assert p.producer == "Crama Cotnari"
