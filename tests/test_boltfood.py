@@ -81,3 +81,33 @@ def test_dish_without_name_or_id_is_skipped(adapter):
     assert adapter._to_product({"product_id": "1"}, "Vin") is None
     assert adapter._to_product({"name": {"value": "Vin"}, "id": None,
                                 "product_id": None}, "Vin") is None
+
+
+def test_wine_root_keeps_every_leaf():
+    """Under a wine-named root (Kaufland's 🍷 Vin), all leaves belong."""
+    keep = KauflandBoltAdapter._keep_leaf
+    assert keep(True, "Vin alb") is True
+    assert keep(True, None) is True
+
+
+def test_drinks_root_filters_to_wine_leaves():
+    """Penny buries wine inside Băuturi; only wine-named leaves survive."""
+    keep = KauflandBoltAdapter._keep_leaf
+    assert keep(False, "Vin") is True
+    assert keep(False, "Șampanie, prosecco") is True
+    assert keep(False, "Bere blondă și brună") is False
+    assert keep(False, "Spirtoase") is False
+    assert keep(False, "Cidru") is False
+    assert keep(False, None) is False
+
+
+def test_penny_bolt_is_registered_with_its_own_identity():
+    from winescraper.sites import get_adapter
+    from winescraper.sites.boltfood import PennyBoltAdapter
+
+    cls = get_adapter("penny_bolt")
+    assert cls is PennyBoltAdapter
+    assert cls.provider_id == 138503
+    assert cls.location == "bolt-food/penny-nasaud-4343"
+    # Must never collide with the direct penny.ro adapter.
+    assert get_adapter("penny") is not cls

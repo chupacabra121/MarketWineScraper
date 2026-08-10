@@ -37,7 +37,10 @@ API = "https://deliveryuser.live.boltsvc.net/deliveryClient/public"
 CLIENT = ("version=FW.1.115&language=ro-RO&deviceType=web&device_name=web"
           "&device_os_version=web&deviceId=00000000-0000-4000-8000-000000000001")
 
-_WINE_CATEGORY = re.compile(r"\b(vin|vinuri|spumant|sampanie|prosecco)\b")
+_WINE_CATEGORY = re.compile(r"\b(vin|vinuri|spumant|spumante|sampanie|prosecco)\b")
+# Fallback roots for stores whose menu buries wine inside a generic drinks
+# category (Penny) instead of a top-level wine one (Kaufland).
+_DRINKS_CATEGORY = re.compile(r"\b(bauturi|alcool)\w*\b")
 # Kaufland's internal titles glue the deposit marker onto the volume
 # ("0.75LSGR"), which defeats both the volume parser and clean_name.
 _GLUED_SGR = re.compile(r"\s*SGR\s*$", re.I)
@@ -79,23 +82,43 @@ class BoltFoodStoreAdapter(Adapter):
             name = name.get("value")
         return str(name or "").strip()
 
-    async def _wine_category_ids(self) -> list[int]:
-        """Find wine categories in the store's menu tree by name."""
+    async def _fetch_roots(self) -> list[tuple[int, bool]]:
+        """Menu categories to fetch, as ``(id, is_wine_root)``.
+
+        Prefer categories named for wine; when a store has none (Penny files
+        wine under a generic "Băuturi"), fall back to drinks-named categories
+        and let the per-dish leaf filter pick the wine out of them.
+        """
         data = await self._get("getMenuCategories", provider_id=self._provider)
-        ids: list[int] = []
-        for node in (data.get("items") or {}).values():
+        items = data.get("items") or {}
+        wine: list[int] = []
+        drinks: list[int] = []
+        for node in items.values():
             if node.get("type") != "category" and node.get("type") is not None:
                 continue
-            if _WINE_CATEGORY.search(fold(self._name_of(node))):
-                ids.append(int(node["id"]))
+            name = fold(self._name_of(node))
+            if _WINE_CATEGORY.search(name):
+                wine.append(int(node["id"]))
+            elif _DRINKS_CATEGORY.search(name):
+                drinks.append(int(node["id"]))
         # Keep only the topmost matches: a matched child of a matched parent
         # would be fetched twice, since getMenuDishes returns whole subtrees.
-        id_set = set(ids)
-        items = data.get("items") or {}
-        topmost = [i for i in ids
-                   if int((items.get(str(i)) or {}).get("parent_id") or 0) not in id_set]
-        log.info("[%s] %d wine categories on the Bolt menu", self.key, len(topmost))
-        return topmost
+        wine_set = set(wine)
+        topmost = [i for i in wine
+                   if int((items.get(str(i)) or {}).get("parent_id") or 0) not in wine_set]
+        if topmost:
+            log.info("[%s] %d wine categories on the Bolt menu", self.key, len(topmost))
+            return [(i, True) for i in topmost]
+        log.info("[%s] no wine category; scanning %d drinks categories",
+                 self.key, len(drinks))
+        return [(i, False) for i in drinks]
+
+    @staticmethod
+    def _keep_leaf(root_is_wine: bool, leaf_name: str | None) -> bool:
+        """Whether dishes under this leaf belong to the wine crawl."""
+        if root_is_wine:
+            return True
+        return bool(leaf_name and _WINE_CATEGORY.search(fold(leaf_name)))
 
     def _to_product(self, dish: dict[str, Any], category_path: str | None) -> WineProduct | None:
         product_id = dish.get("product_id") or dish.get("id")
@@ -132,7 +155,7 @@ class BoltFoodStoreAdapter(Adapter):
 
     async def scrape(self) -> list[WineProduct]:
         products: list[WineProduct] = []
-        for category_id in await self._wine_category_ids():
+        for category_id, is_wine_root in await self._fetch_roots():
             try:
                 data = await self._get("getMenuDishes",
                                        provider_id=self._provider, category_id=category_id)
@@ -148,6 +171,8 @@ class BoltFoodStoreAdapter(Adapter):
                 if node.get("type") != "dish":
                     continue
                 leaf = category_names.get(int(node.get("parent_id") or 0))
+                if not self._keep_leaf(is_wine_root, leaf):
+                    continue
                 path = f"Vin/{leaf}" if leaf and fold(leaf) != "vin" else "Vin"
                 product = self._to_product(node, path)
                 if product:
@@ -169,3 +194,16 @@ class KauflandBoltAdapter(BoltFoodStoreAdapter):
     location = "bolt-food/kaufland-tei-2600"
     note = ("Full Kaufland range (~700 wines) through Bolt Food. Delivery-platform "
             "prices — typically at or above shelf; kept separate from 'kaufland'.")
+
+
+@register
+class PennyBoltAdapter(BoltFoodStoreAdapter):
+    key = "penny_bolt"
+    label = "Penny via Bolt Food"
+    catalogue = "catalogue"
+    provider_id = 138503              # PENNY Nasaud (4343), Bucharest
+    store_slug = "penny-nasaud-4343"
+    location = "bolt-food/penny-nasaud-4343"
+    note = ("~70 wines vs ~36 on penny.ro. Measured against penny.ro shelf "
+            "prices: identical on most overlapping wines (median +0.0%), so this "
+            "mainly buys assortment; differences reflect promo timing.")
