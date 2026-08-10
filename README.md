@@ -66,6 +66,7 @@ Verified live on 2026-08-10.
 | **Penny (REWE)** | Small permanent range (~30 wines) | Server-rendered category pages. |
 | **Kaufland** | Weekly offers only | No shoppable grocery catalogue in Romania; the weekly leaflet is published as structured HTML, so promo wines are scraped and tagged `offer_type=promo`. |
 | **Kaufland via Bolt Food** (`kaufland_bolt`) | Full range (~740 wines) | Bolt Food's public API for the Kaufland Tei store, Bucharest. **Delivery-platform prices**, typically at or above shelf — kept as a separate retailer key so they never mix with shelf data. `provider_id` configurable to point at another store. |
+| **METRO** | Full catalogue (~1,040 wines) | Anonymous `searchdiscover`/`betty-variants` JSON APIs — no login despite the cash & carry model. Prices are VAT-inclusive and deposit-exclusive (`articleGross`); net price and SGR deposit kept in `raw`. National pricing, per-store assortment (default store: Băneasa, ~95% of the range). Grape/region/producer/vintage come structurally; ABV is not published. Many wines carry a 6-bottle minimum order. |
 | Profi | none | No e-commerce catalogue; rejects automated requests (403). |
 | Lidl | none | Online shop carries no wine. |
 | La Cocoș, Supeco | none | Blocked at the edge (403), including from a real browser. |
