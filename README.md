@@ -65,6 +65,7 @@ Verified live on 2026-08-10.
 | **Mega Image** | Full catalogue (~220 wines) | GraphQL API. Needs a browser session. |
 | **Penny (REWE)** | Small permanent range (~30 wines) | Server-rendered category pages. |
 | **Kaufland** | Weekly offers only | No shoppable grocery catalogue in Romania; the weekly leaflet is published as structured HTML, so promo wines are scraped and tagged `offer_type=promo`. |
+| **Kaufland via Bolt Food** (`kaufland_bolt`) | Full range (~740 wines) | Bolt Food's public API for the Kaufland Tei store, Bucharest. **Delivery-platform prices**, typically at or above shelf — kept as a separate retailer key so they never mix with shelf data. `provider_id` configurable to point at another store. |
 | Profi | none | No e-commerce catalogue; rejects automated requests (403). |
 | Lidl | none | Online shop carries no wine. |
 | La Cocoș, Supeco | none | Blocked at the edge (403), including from a real browser. |
@@ -142,6 +143,24 @@ the API by default. To stay strictly within `robots.txt` at the cost of coverage
 ```
 
 which limits the run to the 60 wines on the embedded first page.
+
+### Third-party delivery platforms
+
+`kaufland_bolt` reads Kaufland's range through Bolt Food rather than from
+Kaufland itself. That trade has a clear shape:
+
+- **What it buys:** the retailer's full assortment (~740 wines vs the ~5 in the
+  weekly leaflet) for a chain with no web shop of its own.
+- **What it costs:** the prices are the platform's, not the shelf's. Retailers
+  and platforms commonly add a margin on delivery listings, so these rows are
+  comparable with each other over time but not interchangeable with shelf
+  prices. They therefore live under their own retailer key, with the platform
+  and store named in `location` and `raw.source`.
+
+The `BoltFoodStoreAdapter` base class is store-agnostic — other Bolt-listed
+retailers (Profi, La Cocoș, Auchan MyAuchan…) are a subclass with a different
+`provider_id`. The same pattern would apply to Glovo or Tazz, each needing its
+own API recon first.
 
 ## Notes on fragility
 
