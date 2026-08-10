@@ -161,10 +161,28 @@ Kaufland itself. That trade has a clear shape:
   prices. They therefore live under their own retailer key, with the platform
   and store named in `location` and `raw.source`.
 
-The `BoltFoodStoreAdapter` base class is store-agnostic — other Bolt-listed
-retailers (Profi, La Cocoș, Auchan MyAuchan…) are a subclass with a different
-`provider_id`. The same pattern would apply to Glovo or Tazz, each needing its
-own API recon first.
+The `BoltFoodStoreAdapter` and `GlovoStoreAdapter` base classes are
+store-agnostic — another store on either platform is a subclass (or config
+override) away.
+
+### Platform survey (2026-08-10)
+
+All four delivery platforms were swept for the retailers that have no direct
+data source — Bolt Food (`deliverySearch` across 8 cities), Glovo (full
+sitemap, 9,979 RO store pages), Wolt (full sitemap, 16,408 RO venues) and
+Bringo (store-slug probes):
+
+- **Lidl, La Cocoș, La Doi Pași, Annabella, Unicarm, Froo, Atac** are on none
+  of them. Short of parsing weekly leaflets, they are unreachable today.
+- **Profi** is on Glovo (71 cities — used by `profi_glovo`) and also on Wolt
+  (~100 stores). Wolt is a viable alternative route if Glovo breaks.
+- **Supeco** is on Glovo (Suceava — used by `supeco_glovo`) and also on
+  Bringo (Carrefour Group's shopper platform), which serves a server-rendered
+  wine listing with visible prices — an alternative route covering a
+  different store.
+- Wolt and Bolt both run their own dark-store groceries (Wolt Market, Bolt
+  Market) that stock wine; adapters for those would be trivial subclasses if
+  ever wanted.
 
 ## Notes on fragility
 
