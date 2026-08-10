@@ -22,61 +22,61 @@ class _NoCatalogue(Adapter):
 @register
 class ProfiAdapter(_NoCatalogue):
     key = "profi"
-    label = "Profi Rom Food"
-    note = "No e-commerce catalogue; site rejects automated requests (HTTP 403)."
+    label = "Profi Rom Food (direct)"
+    note = "Site rejects automated requests (HTTP 403); use profi_glovo instead."
 
 
 @register
 class LidlAdapter(_NoCatalogue):
     key = "lidl"
     label = "Lidl Romania"
-    note = "Online shop carries no wine; alcohol is in-store and leaflet only."
+    note = "Online shop carries no wine; absent from Bolt Food and Glovo too."
 
 
 @register
 class LaCocosAdapter(_NoCatalogue):
     key = "lacocos"
     label = "La Cocos"
-    note = "Blocked at the edge (HTTP 403) including from a real browser."
+    note = "Blocked at the edge (HTTP 403); absent from Bolt Food and Glovo (checked 2026-08-10)."
 
 
 @register
 class SupecoAdapter(_NoCatalogue):
     key = "supeco"
-    label = "Supeco"
-    note = "Blocked at the edge (HTTP 403); no public product listing found."
+    label = "Supeco (direct)"
+    note = "Blocked at the edge (HTTP 403); use supeco_glovo instead."
 
 
 @register
 class FrooAdapter(_NoCatalogue):
     key = "froo"
     label = "Froo"
-    note = "Marketing site only (WordPress); sitemap contains no products."
+    note = "Marketing site only; absent from Bolt Food and Glovo (checked 2026-08-10)."
 
 
 @register
 class AnnabellaAdapter(_NoCatalogue):
     key = "annabella"
     label = "Annabella"
-    note = "Product sitemap lists 18 items, none of them wine."
+    note = "Product sitemap lists 18 items, none wine; absent from Bolt Food and Glovo."
 
 
 @register
 class UnicarmAdapter(_NoCatalogue):
     key = "unicarm"
     label = "Unicarm"
-    note = "Single-page landing site; no product listing at all."
+    note = "Single-page landing site; absent from Bolt Food and Glovo (checked 2026-08-10)."
 
 
 @register
 class LaDoiPasiAdapter(_NoCatalogue):
     key = "ladoipasi"
     label = "La Doi Pasi"
-    note = "Franchise network; official site publishes a leaflet, not a catalogue."
+    note = "Franchise network; leaflet-only site, absent from Bolt Food and Glovo."
 
 
 @register
-class AttackAdapter(_NoCatalogue):
-    key = "attack"
-    label = "Attack Discount"
-    note = "No public product listing found."
+class AtacAdapter(_NoCatalogue):
+    key = "atac"
+    label = "Atac Hiper Discount (Auchan)"
+    note = "No public product listing; absent from Bolt Food and Glovo (checked 2026-08-10)."

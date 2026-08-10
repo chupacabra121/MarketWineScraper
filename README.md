@@ -68,13 +68,15 @@ Verified live on 2026-08-10.
 | **Kaufland via Bolt Food** (`kaufland_bolt`) | Full range (~740 wines) | Bolt Food's public API for the Kaufland Tei store, Bucharest. **Delivery-platform prices**, typically at or above shelf — kept as a separate retailer key so they never mix with shelf data. `provider_id` configurable to point at another store. |
 | **METRO** | Full catalogue (~1,040 wines) | Anonymous `searchdiscover`/`betty-variants` JSON APIs — no login despite the cash & carry model. Prices are VAT-inclusive and deposit-exclusive (`articleGross`); net price and SGR deposit kept in `raw`. National pricing, per-store assortment (default store: Băneasa, ~95% of the range). Grape/region/producer/vintage come structurally; ABV is not published. Many wines carry a 6-bottle minimum order. |
 | **Penny via Bolt Food** (`penny_bolt`) | ~70 wines | Same Bolt Food API, PENNY Năsăud store. Measured against penny.ro on 27 shared wines: **median price difference +0.0%** — Bolt-Penny prices are shelf prices, so this mainly buys assortment (penny.ro lists only half the range). Glovo's Penny store was checked too and rejected: every one of its 70 products is also on Bolt, and its prices run ~0.50 lei higher (it folds the SGR deposit into the displayed price). |
-| Profi | none | No e-commerce catalogue; rejects automated requests (403). |
-| Lidl | none | Online shop carries no wine. |
-| La Cocoș, Supeco | none | Blocked at the edge (403), including from a real browser. |
-| Froo, Unicarm | none | Marketing sites; no product listings. |
-| Annabella | none | Product sitemap lists 18 items, none of them wine. |
-| La Doi Pași | none | Franchise network; official site publishes a leaflet, not a catalogue. |
-| Attack Discount | none | No public product listing found. |
+| **Profi via Glovo** (`profi_glovo`) | ~70 wines | The only data route into Profi (own site rejects bots; ~1,700 stores, no web shop). Store page is server-rendered with the store/address ids and wine section ids embedded; tiles come from Glovo's public `content/partial` API. **Glovo prices include the 0.50-lei SGR deposit** (measured on Penny). |
+| **Supeco via Glovo** (`supeco_glovo`) | ~100 wines | Same Glovo base, Suceava store — the single Supeco on any delivery platform. Supeco's own site is blocked at the edge. |
+| Profi (direct), Supeco (direct) | none | Sites reject/block automated requests — covered via the `*_glovo` adapters above instead. |
+| Lidl | none | Online shop carries no wine; absent from Bolt Food and Glovo too. |
+| La Cocoș | none | Blocked at the edge (403); absent from Bolt Food and Glovo (checked 2026-08-10). |
+| Froo, Unicarm | none | Marketing sites; absent from Bolt Food and Glovo. |
+| Annabella | none | Product sitemap lists 18 items, none of them wine; absent from both platforms. |
+| La Doi Pași | none | Franchise network; leaflet-only site, absent from both platforms. |
+| Atac (Auchan) | none | No public product listing; absent from Bolt Food and Glovo (checked 2026-08-10). |
 
 Adding a retailer later is a drop-in: subclass `Adapter`, set `key`, implement
 `scrape()`, and `@register` it.
