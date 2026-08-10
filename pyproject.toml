@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "winescraper"
+version = "0.1.0"
+description = "Scrapes wine listings and prices from Romanian supermarket, discounter and cash & carry websites."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx[http2]>=0.27",
+    "selectolax>=0.3.21",
+    "playwright>=1.40",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+winescraper = "winescraper.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["winescraper*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

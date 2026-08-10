@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# scraper output
+data/
+*.sqlite
+*.sqlite3
+exports/
+.cache/
+http_cache/
+
+.pytest_cache/
+.coverage
+.DS_Store
