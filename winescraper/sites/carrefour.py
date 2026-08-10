@@ -64,14 +64,12 @@ class CarrefourAdapter(Adapter):
         if price_node:
             price = parse_price(price_node.attributes.get("data-price-amount"))
 
-        # Magento emits the reference price in a meta tag; when it exceeds the
-        # displayed price the tile is on promotion.
+        # Carrefour listing tiles carry no strikethrough price: the only other
+        # figure is <meta itemprop="price">, which sits a rounding step above the
+        # displayed price on 96% of wines (median +1.3%) and is not a former
+        # price. Treating it as one flagged nearly the whole catalogue as
+        # discounted, so promotions are simply not detectable from listings here.
         list_price = None
-        meta = tile.css_first('meta[itemprop="price"]')
-        if meta:
-            list_price = parse_price(meta.attributes.get("content"))
-        if list_price is not None and price is not None and list_price <= price:
-            list_price = None
 
         # The add-to-cart button carries the analytics payload: sku, brand, path.
         button = tile.css_first("button.tocart") or tile.css_first("[data-brand]")
