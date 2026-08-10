@@ -60,6 +60,7 @@ Verified live on 2026-08-10.
 | **Auchan** | Full catalogue (~1,300 wines) | VTEX public catalog API. Richest source by far — grape, ABV, sweetness, country, region and producer all come back as structured fields. |
 | **Carrefour** | Full catalogue (~1,400 wines) | Magento category pages, server-rendered; parsed from HTML. |
 | **Freshful** | Full catalogue (927 wines) | Next.js JSON, no bot protection. Brand and unit price on every row; ABV on 95%. |
+| **Sezamo** | Full catalogue (441 wines) | Rohlik-platform JSON API, no bot protection. Package size comes back structurally, so price-per-litre is exact on every row. |
 | **Selgros** | Full catalogue (~1,180 wines) | Azure Cognitive Search index. Wine categories are discovered from the `categoryPath` facet, not hardcoded. |
 | **Mega Image** | Full catalogue (~220 wines) | GraphQL API. Needs a browser session. |
 | **Penny (REWE)** | Small permanent range (~30 wines) | Server-rendered category pages. |

@@ -1,7 +1,8 @@
 """Site adapters. Importing this package registers every adapter."""
 
 from . import (  # noqa: F401
-    auchan, carrefour, freshful, kaufland, mega_image, penny, selgros, unsupported,
+    auchan, carrefour, freshful, kaufland, mega_image, penny, selgros, sezamo,
+    unsupported,
 )
 from .base import (  # noqa: F401
     Adapter,
