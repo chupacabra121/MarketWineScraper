@@ -59,6 +59,7 @@ Verified live on 2026-08-10.
 | --- | --- | --- |
 | **Auchan** | Full catalogue (~1,300 wines) | VTEX public catalog API. Richest source by far — grape, ABV, sweetness, country, region and producer all come back as structured fields. |
 | **Carrefour** | Full catalogue (~1,400 wines) | Magento category pages, server-rendered; parsed from HTML. |
+| **Freshful** | Full catalogue (927 wines) | Next.js JSON, no bot protection. Brand and unit price on every row; ABV on 95%. |
 | **Selgros** | Full catalogue (~1,180 wines) | Azure Cognitive Search index. Wine categories are discovered from the `categoryPath` facet, not hardcoded. |
 | **Mega Image** | Full catalogue (~220 wines) | GraphQL API. Needs a browser session. |
 | **Penny (REWE)** | Small permanent range (~30 wines) | Server-rendered category pages. |
@@ -127,6 +128,19 @@ Per-site settings via `--config settings.json`:
 Selgros prices per depot; `market` selects which one (350 = București Berceni).
 Every stored row records its `location`, so figures from different stores are
 never silently mixed.
+
+Freshful's `robots.txt` allows its category pages but disallows `/api/v2/shop`,
+and only that API route paginates — the category page embeds just the first 60
+wines. Following the configured "robots as advisory" posture, the adapter uses
+the API by default. To stay strictly within `robots.txt` at the cost of coverage:
+
+```json
+{
+  "freshful": { "respect_robots": true }
+}
+```
+
+which limits the run to the 60 wines on the embedded first page.
 
 ## Notes on fragility
 
