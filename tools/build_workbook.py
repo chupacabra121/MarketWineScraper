@@ -92,6 +92,13 @@ def load_rows():
     ORDER BY p.retailer, p.name
     """
     rows = [dict(r) for r in conn.execute(sql)]
+    # Listings a human has ruled out stay out of every report.
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from winescraper import decisions as _dec
+    rows, dropped = _dec.filter_rows(rows, _dec.load("decisions.jsonl"))
+    if dropped:
+        print(f"{dropped} listing(s) excluded by decision")
     # One Carrefour listing carries a 9999 placeholder price for an item that is
     # really ~20 lei; it would distort every max and mean it touched.
     rows = [r for r in rows if not (r.get("price") and r["price"] >= 9999)]

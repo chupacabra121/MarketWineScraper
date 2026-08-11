@@ -16,6 +16,9 @@ from .storage import Store
 
 DEFAULT_DB = Path("data/wines.sqlite")
 DEFAULT_EXPORT_DIR = Path("exports")
+# Committed alongside the code: these are human judgements about a
+# catalogue, not derived data, and they must outlive any rebuilt database.
+DEFAULT_DECISIONS = Path("decisions.jsonl")
 
 
 def _setup_logging(verbosity: int) -> None:
@@ -71,6 +74,18 @@ def build_parser() -> argparse.ArgumentParser:
     history.add_argument("--db", type=Path, default=DEFAULT_DB)
     history.add_argument("--limit", type=int, default=40)
 
+    changes = sub.add_parser("changes", parents=[common],
+                             help="what moved since the previous run")
+    changes.add_argument("--db", type=Path, default=DEFAULT_DB)
+    changes.add_argument("--limit", type=int, default=10,
+                         help="movers to list in each direction")
+
+    hist = sub.add_parser("history-file", parents=[common],
+                          help="move the price series in or out of a portable CSV")
+    hist.add_argument("action", choices=("export", "import"))
+    hist.add_argument("--db", type=Path, default=DEFAULT_DB)
+    hist.add_argument("--path", type=Path, default=Path("data/price-history.csv"))
+
     stats = sub.add_parser("stats", parents=[common], help="row counts per retailer")
     stats.add_argument("--db", type=Path, default=DEFAULT_DB)
 
@@ -90,6 +105,25 @@ def build_parser() -> argparse.ArgumentParser:
     checks.add_argument("--site", dest="site")
     checks.add_argument("--show", type=int, default=15,
                         help="rows to print per finding type")
+    checks.add_argument("--decisions", type=Path, default=DEFAULT_DECISIONS)
+    checks.add_argument("--all", dest="include_settled", action="store_true",
+                        help="include findings already decided")
+
+    decide = sub.add_parser("decide", parents=[common],
+                            help="record a judgement so a finding stops recurring")
+    decide.add_argument("finding", help="the finding kind, e.g. 'review' or 'not wine'")
+    decide.add_argument("verdict", choices=("wine", "exclude", "noted"),
+                        help="wine = the flag was wrong; exclude = drop the listing; "
+                             "noted = real but unfixable, stop reporting it")
+    decide.add_argument("--retailer")
+    decide.add_argument("--id", dest="external_id")
+    decide.add_argument("--wine", dest="wine_key", help="for findings about a whole wine")
+    decide.add_argument("--note", default="", help="why — this is the part worth keeping")
+    decide.add_argument("--decisions", type=Path, default=DEFAULT_DECISIONS)
+
+    decided = sub.add_parser("decisions", parents=[common],
+                             help="show the judgements recorded so far")
+    decided.add_argument("--decisions", type=Path, default=DEFAULT_DECISIONS)
 
     return parser
 
@@ -169,24 +203,29 @@ def cmd_run(args) -> int:
     # a check nobody remembers to run catches nothing.
     suspect = 0
     if not args.dry_run and not args.no_check:
-        suspect = _report_findings(args.db, show=3)
+        suspect = _report_findings(args.db, show=3,
+                                   decisions_path=DEFAULT_DECISIONS)
     return 1 if (failures or degraded or suspect) else 0
 
 
 def cmd_export(args) -> int:
     import csv
 
+    from . import decisions as dec
+
     with Store(args.db) as store:
-        rows = store.latest(args.site)
+        rows = [dict(r) for r in store.latest(args.site)]
+    rows, dropped = dec.filter_rows(rows, dec.load(DEFAULT_DECISIONS))
+    if dropped:
+        print(f"{dropped} listing(s) excluded by decision", file=sys.stderr)
     if not rows:
         print("nothing stored yet — run a scrape first", file=sys.stderr)
         return 1
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="", encoding="utf-8-sig") as handle:
-        writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
-        for row in rows:
-            writer.writerow(dict(row))
+        writer.writerows(rows)
     print(f"{len(rows)} rows → {args.out}")
     return 0
 
@@ -205,6 +244,59 @@ def cmd_history(args) -> int:
     return 0
 
 
+def cmd_changes(args) -> int:
+    """The run-over-run digest: what is new, what has gone, what moved."""
+    with Store(args.db) as store:
+        d = store.digest(args.limit)
+    if not d.get("runs"):
+        print("nothing stored yet — run a scrape first")
+        return 0
+    if d["runs"] < 2:
+        print(f"only one run stored ({d['today']}). Price history needs a second "
+              "run to compare against.")
+        return 0
+
+    print(f"{d['since']} → {d['today']}\n")
+    print(f"  {d['moved']:>5} price(s) moved   {d['down']} down, {d['up']} up")
+    print(f"  {len(d['appeared']):>5} new listing(s)")
+    print(f"  {len(d['gone']):>5} listing(s) no longer offered")
+
+    for label, movers in (("biggest drops", d["biggest_drops"]),
+                          ("biggest rises", d["biggest_rises"])):
+        if not movers:
+            continue
+        print(f"\n{label}:")
+        for m in movers:
+            print(f"  {m['retailer']:<14} {m['old_price']:>8.2f} → {m['new_price']:<8.2f} "
+                  f"{m['change']:>+7.0%}  {m['name'][:48]}")
+
+    for label, items in (("new", d["appeared"]), ("gone", d["gone"])):
+        if not items:
+            continue
+        print(f"\n{label} ({len(items)}):")
+        for item in items[:args.limit]:
+            print(f"  {item['retailer']:<14} {item['name'][:60]}")
+        if len(items) > args.limit:
+            print(f"  {'':<14} … and {len(items) - args.limit} more")
+    return 0
+
+
+def cmd_history_file(args) -> int:
+    """Carry the price series across rebuilds of the database.
+
+    A scheduled run starts from an empty database, so the series has to be
+    imported before the scrape (or every price looks new) and exported after.
+    """
+    with Store(args.db) as store:
+        if args.action == "export":
+            count = store.export_history(args.path)
+            print(f"{count:,} observation(s) → {args.path}")
+        else:
+            count = store.import_history(args.path)
+            print(f"{count:,} observation(s) loaded from {args.path}")
+    return 0
+
+
 def cmd_stats(args) -> int:
     with Store(args.db) as store:
         rows = store.stats()
@@ -216,8 +308,11 @@ def cmd_stats(args) -> int:
     return 0
 
 
-def _report_findings(db: Path, site: str | None = None, show: int = 15) -> int:
+def _report_findings(db: Path, site: str | None = None, show: int = 15,
+                     decisions_path: Path | None = None,
+                     include_settled: bool = False) -> int:
     """Print the data checks over the latest stored prices. Returns the count."""
+    from . import decisions as dec
     from .validate import check, summarise
 
     with Store(db) as store:
@@ -227,19 +322,28 @@ def _report_findings(db: Path, site: str | None = None, show: int = 15) -> int:
         print("database is empty")
         return 0
 
+    log = dec.load(decisions_path) if decisions_path else dec.DecisionLog()
+    rows, dropped = dec.filter_rows(rows, log)
     findings = check(rows)
-    print(f"\nchecked {len(rows):,} rows")
+    settled = 0
+    if not include_settled:
+        findings, settled = dec.apply(findings, log)
+
+    print(f"\nchecked {len(rows):,} rows"
+          + (f" ({dropped} excluded by decision)" if dropped else ""))
     if drift:
         print("run-over-run drift:")
         for d in drift:
             print(f"  {d['retailer']:<14} {d['previous']:>5} → {d['current']:<5} rows "
                   f"({d['change']:+.0%})")
+    if settled:
+        print(f"{settled} finding(s) already decided — see 'winescraper decisions'")
     if not findings:
-        print("no problems found")
+        print("no open findings")
         return 0
 
     counts = summarise(findings)
-    print(f"{len(findings)} finding(s):")
+    print(f"{len(findings)} open finding(s):")
     for kind, count in counts.items():
         print(f"  {kind:<22} {count}")
     for kind in counts:
@@ -247,6 +351,9 @@ def _report_findings(db: Path, site: str | None = None, show: int = 15) -> int:
         print(f"\n{kind}:")
         for f in examples:
             print(f"  {f.retailer:<14} {f.name[:56]:<56} {f.detail}")
+        if examples:
+            print(f"    settle one with: winescraper decide '{kind}' "
+                  f"<wine|exclude|noted> {examples[0].target}")
     return len(findings)
 
 
@@ -289,7 +396,43 @@ def cmd_check(args) -> int:
     """Report rows that look wrong, so a run can be inspected before publishing."""
     # Findings are advisory: a real 2,541-lei bottle looks like an outlier too,
     # so this reports rather than fails.
-    _report_findings(args.db, args.site, args.show)
+    _report_findings(args.db, args.site, args.show, args.decisions,
+                     args.include_settled)
+    return 0
+
+
+def cmd_decide(args) -> int:
+    """Record a judgement about a finding so it stops coming back."""
+    from . import decisions as dec
+
+    try:
+        decision = dec.record(args.decisions, dec.Decision(
+            finding=args.finding, verdict=args.verdict,
+            retailer=args.retailer or "", external_id=args.external_id or "",
+            wine_key=args.wine_key or "", note=args.note))
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+    what = decision.wine_key or f"{decision.retailer}/{decision.external_id}"
+    print(f"recorded: {decision.finding} on {what} → {decision.verdict}")
+    if decision.verdict == "exclude":
+        print("the listing is now dropped from exports and reports")
+    return 0
+
+
+def cmd_decisions(args) -> int:
+    from . import decisions as dec
+
+    log = dec.load(args.decisions)
+    if not log.decisions:
+        print(f"no decisions recorded in {args.decisions}")
+        return 0
+    print(f"{len(log.decisions)} decision(s) in {args.decisions}\n")
+    for d in log.decisions:
+        what = d.wine_key or f"{d.retailer}/{d.external_id}"
+        print(f"  {d.decided_at[:10]}  {d.verdict:<8} {d.finding:<20} {what}")
+        if d.note:
+            print(f"  {'':<12}└─ {d.note}")
     return 0
 
 
@@ -305,6 +448,10 @@ def main(argv: list[str] | None = None) -> int:
         "stats": cmd_stats,
         "check": cmd_check,
         "wines": cmd_wines,
+        "changes": cmd_changes,
+        "history-file": cmd_history_file,
+        "decide": cmd_decide,
+        "decisions": cmd_decisions,
     }
     return handlers[args.command](args)
 

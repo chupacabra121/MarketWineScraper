@@ -89,6 +89,20 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _float(value) -> float | None:
+    try:
+        return float(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _int(value) -> int | None:
+    try:
+        return int(float(value)) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
 class Store:
     """Thin wrapper over SQLite. Safe to use as a context manager."""
 
@@ -233,7 +247,14 @@ class Store:
 
     # -- reads -----------------------------------------------------------
     def latest(self, retailer: str | None = None) -> list[sqlite3.Row]:
-        """Most recent price observation per product."""
+        """Most recent price observation per product still on sale.
+
+        Products the retailer's most recent run did not see are left out: a wine
+        that has been delisted is not a current price, and once a price series
+        is carried across runs it would otherwise sit in "latest" forever at
+        whatever it last cost. The comparison is per retailer and by day, so a
+        run covering only some sites does not delist the rest.
+        """
         sql = """
         SELECT p.*, o.price, o.currency, o.list_price, o.unit_price, o.unit_price_unit,
                o.price_per_litre, o.on_promotion, o.offer_type, o.in_stock, o.observed_at
@@ -242,6 +263,11 @@ class Store:
             SELECT id FROM price_observations
             WHERE product_id = p.id ORDER BY observed_at DESC, id DESC LIMIT 1
         )
+        JOIN (
+            SELECT retailer, MAX(substr(last_seen, 1, 10)) AS day
+            FROM products GROUP BY retailer
+        ) current ON current.retailer = p.retailer
+                 AND substr(p.last_seen, 1, 10) = current.day
         """
         params: tuple = ()
         if retailer:
@@ -376,6 +402,155 @@ class Store:
             changed += 1
         self.conn.commit()
         return changed
+
+    #: Columns of the portable history file. Enough to recreate the products a
+    #: past price belongs to, and nothing more — attributes are re-derived on
+    #: every scrape, so storing them here would only let them go stale.
+    HISTORY_COLUMNS = ("observed_at", "retailer", "external_id", "name", "price",
+                       "currency", "list_price", "on_promotion", "offer_type",
+                       "in_stock")
+
+    def export_history(self, path: str | Path) -> int:
+        """Write every price observation as CSV.
+
+        The database is a build artefact — a scheduled run rebuilds it from
+        nothing — so the price series has to live somewhere that survives that.
+        A sorted text file does, and unlike a SQLite binary it can be committed
+        and diffed: each run appends the handful of prices that actually moved.
+        """
+        import csv
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rows = self.conn.execute(
+            """
+            SELECT o.observed_at, p.retailer, p.external_id, p.name, o.price,
+                   o.currency, o.list_price, o.on_promotion, o.offer_type, o.in_stock
+            FROM price_observations o JOIN products p ON p.id = o.product_id
+            ORDER BY o.observed_at, p.retailer, p.external_id
+            """).fetchall()
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(self.HISTORY_COLUMNS)
+            writer.writerows(tuple(r) for r in rows)
+        return len(rows)
+
+    def import_history(self, path: str | Path) -> int:
+        """Load a previously exported series into an empty database.
+
+        Runs before a scrape, so that the scrape can tell a price that moved
+        from one it is seeing for the first time. Observations already present
+        are left alone, which makes re-running it harmless.
+        """
+        import csv
+
+        path = Path(path)
+        if not path.exists():
+            return 0
+        loaded = 0
+        with path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                product_id = self._history_product(row)
+                exists = self.conn.execute(
+                    "SELECT 1 FROM price_observations "
+                    "WHERE product_id = ? AND observed_at = ?",
+                    (product_id, row["observed_at"])).fetchone()
+                if exists:
+                    continue
+                self.conn.execute(
+                    "INSERT INTO price_observations (product_id, observed_at, price, "
+                    "currency, list_price, on_promotion, offer_type, in_stock) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (product_id, row["observed_at"], _float(row["price"]),
+                     row["currency"] or None, _float(row["list_price"]),
+                     _int(row["on_promotion"]), row["offer_type"] or None,
+                     _int(row["in_stock"])))
+                loaded += 1
+        self.conn.commit()
+        return loaded
+
+    def _history_product(self, row: dict) -> int:
+        """The product a historical observation belongs to, created if needed."""
+        found = self.conn.execute(
+            "SELECT id FROM products WHERE retailer = ? AND external_id = ?",
+            (row["retailer"], row["external_id"])).fetchone()
+        if found:
+            return found["id"]
+        cursor = self.conn.execute(
+            "INSERT INTO products (retailer, external_id, name, first_seen, last_seen) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (row["retailer"], row["external_id"], row["name"],
+             row["observed_at"], row["observed_at"]))
+        return cursor.lastrowid
+
+    def digest(self, limit: int = 10) -> dict:
+        """What changed since the previous run.
+
+        A price series nobody reads is a table; this is the part that makes it a
+        report. Products appearing for the first time in the most recent run are
+        new listings, products not seen in it have gone, and everything else is
+        a price that moved.
+        """
+        # Anchored on last_seen, not on the newest observation: a price that did
+        # not move writes no observation, so on a quiet day the observations
+        # would say no run happened at all.
+        latest = self.conn.execute("SELECT MAX(last_seen) FROM products").fetchone()[0]
+        if not latest:
+            return {"since": None, "runs": 0}
+        day = latest[:10]
+
+        previous = self.conn.execute(
+            "SELECT MAX(observed_at) FROM price_observations WHERE observed_at < ?",
+            (day,)).fetchone()[0]
+        if not previous:
+            return {"since": None, "runs": 1, "today": day}
+
+        moves = [dict(r) for r in self.conn.execute(
+            """
+            WITH ranked AS (
+                SELECT o.product_id, o.price, o.observed_at,
+                       ROW_NUMBER() OVER (PARTITION BY o.product_id
+                                          ORDER BY o.observed_at DESC, o.id DESC) AS rn
+                FROM price_observations o
+            )
+            SELECT p.retailer, p.name, p.wine_key,
+                   prev.price AS old_price, cur.price AS new_price,
+                   (cur.price - prev.price) / prev.price AS change
+            FROM ranked cur
+            JOIN ranked prev ON prev.product_id = cur.product_id AND prev.rn = 2
+            JOIN products p ON p.id = cur.product_id
+            WHERE cur.rn = 1 AND cur.observed_at >= ?
+              AND cur.price IS NOT NULL AND prev.price > 0
+              AND cur.price != prev.price
+            ORDER BY ABS((cur.price - prev.price) / prev.price) DESC
+            """, (day,))]
+
+        # Scoped per retailer, like `latest`: a run covering some sites must not
+        # report every other site's whole catalogue as delisted.
+        current = """
+            SELECT retailer, MAX(substr(last_seen, 1, 10)) AS day
+            FROM products GROUP BY retailer
+        """
+        appeared = [dict(r) for r in self.conn.execute(
+            f"SELECT p.retailer, p.name, p.wine_key FROM products p "
+            f"JOIN ({current}) c ON c.retailer = p.retailer "
+            f"WHERE substr(p.first_seen, 1, 10) = c.day AND c.day >= ? "
+            f"ORDER BY p.retailer, p.name", (day,))]
+        gone = [dict(r) for r in self.conn.execute(
+            f"SELECT p.retailer, p.name, p.wine_key FROM products p "
+            f"JOIN ({current}) c ON c.retailer = p.retailer "
+            f"WHERE substr(p.last_seen, 1, 10) < c.day "
+            f"ORDER BY p.retailer, p.name")]
+
+        drops = [m for m in moves if m["change"] < 0]
+        rises = [m for m in moves if m["change"] > 0]
+        return {
+            "since": previous[:10], "today": day, "runs": 2,
+            "moved": len(moves), "down": len(drops), "up": len(rises),
+            "appeared": appeared, "gone": gone,
+            "biggest_drops": drops[:limit],
+            "biggest_rises": sorted(rises, key=lambda m: -m["change"])[:limit],
+        }
 
     def retailer_drift(self, threshold: float = 0.10) -> list[dict]:
         """Retailers whose row count moved sharply against their previous run.

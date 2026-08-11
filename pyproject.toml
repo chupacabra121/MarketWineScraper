@@ -16,6 +16,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4"]
+# Only the scripts in tools/ need these; the scraper itself does not.
+reports = ["openpyxl>=3.1"]
 
 [project.scripts]
 winescraper = "winescraper.cli:main"

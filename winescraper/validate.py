@@ -48,6 +48,18 @@ class Finding:
     retailer: str
     name: str
     detail: str
+    #: What a decision about this finding would point at. ``retailer`` above is
+    #: for display and can read "metro/auchan"; these identify a row exactly.
+    retailer_key: str = ""
+    external_id: str = ""
+    wine_key: str = ""
+
+    @property
+    def target(self) -> str:
+        """How to refer to this finding on the command line."""
+        if self.wine_key:
+            return f"--wine {self.wine_key}"
+        return f"--retailer {self.retailer_key} --id {self.external_id}"
 
 
 def wine_signals(row: dict) -> int:
@@ -78,36 +90,42 @@ def check(rows: list[dict]) -> list[Finding]:
     for (retailer, ext), count in seen.items():
         if count > 1:
             findings.append(Finding("duplicate id", retailer, ext,
-                                    f"{count} rows share this product id"))
+                                    f"{count} rows share this product id",
+                                    retailer_key=retailer, external_id=ext))
 
     for r in rows:
         name = r.get("name") or ""
         price = r.get("price")
         volume = r.get("volume_l")
 
+        where = {"retailer_key": r["retailer"],
+                 "external_id": str(r.get("external_id") or "")}
         if not name.strip():
-            findings.append(Finding("empty name", r["retailer"], "", "row has no product name"))
+            findings.append(Finding("empty name", r["retailer"], "",
+                                    "row has no product name", **where))
             continue
         if price is None:
-            findings.append(Finding("no price", r["retailer"], name, "listing carries no price"))
+            findings.append(Finding("no price", r["retailer"], name,
+                                    "listing carries no price", **where))
             continue
         if price <= 0:
-            findings.append(Finding("bad price", r["retailer"], name, f"price is {price}"))
+            findings.append(Finding("bad price", r["retailer"], name,
+                                    f"price is {price}", **where))
         if not looks_like_wine(name, r.get("category_path")):
             findings.append(Finding("not wine", r["retailer"], name,
-                                    "name does not read as wine"))
+                                    "name does not read as wine", **where))
         elif (signals := wine_signals(r)) < MIN_WINE_SIGNALS:
             findings.append(Finding("review", r["retailer"], name,
                                     f"only {signals} wine signal(s): kept on the "
-                                    "retailer's category alone"))
+                                    "retailer's category alone", **where))
         if volume and volume > 0:
             ppl = price / volume
             if ppl < MIN_PLAUSIBLE_PPL:
                 findings.append(Finding("price too low", r["retailer"], name,
-                                        f"{ppl:.2f} RON/L on a {volume} L bottle"))
+                                        f"{ppl:.2f} RON/L on a {volume} L bottle", **where))
             elif ppl > MAX_PLAUSIBLE_PPL:
                 findings.append(Finding("price too high", r["retailer"], name,
-                                        f"{ppl:.2f} RON/L on a {volume} L bottle"))
+                                        f"{ppl:.2f} RON/L on a {volume} L bottle", **where))
 
             # Most sites publish their own price per litre next to the price.
             # It is computed server-side from the same two numbers we parsed,
@@ -121,7 +139,7 @@ def check(rows: list[dict]) -> list[Finding]:
                     findings.append(Finding(
                         "unit price disagrees", r["retailer"], name,
                         f"{price} over {volume} L is {ppl:.2f} RON/L, but the "
-                        f"site publishes {unit_price:.2f} RON/L"))
+                        f"site publishes {unit_price:.2f} RON/L", **where))
 
     # -- wines whose listings disagree too much to be one wine ---------
     # Identity is reconstructed from titles, so it can be wrong. When it is, the
@@ -143,7 +161,8 @@ def check(rows: list[dict]) -> list[Finding]:
             findings.append(Finding(
                 "wine spread", f"{cheap['retailer']}/{dear['retailer']}", wine_key,
                 f"{cheap['price']:.2f} to {dear['price']:.2f} "
-                f"({max(prices) / min(prices):.1f}x) — grouped as one wine"))
+                f"({max(prices) / min(prices):.1f}x) — grouped as one wine",
+                wine_key=wine_key))
 
     # -- per-retailer outliers ----------------------------------------
     by_retailer: dict[str, list[tuple[float, dict]]] = defaultdict(list)
@@ -158,7 +177,9 @@ def check(rows: list[dict]) -> list[Finding]:
             if ppl > median * OUTLIER_FACTOR:
                 findings.append(Finding(
                     "outlier", retailer, r["name"],
-                    f"{ppl:.0f} RON/L against a retailer median of {median:.0f}"))
+                    f"{ppl:.0f} RON/L against a retailer median of {median:.0f}",
+                    retailer_key=retailer,
+                    external_id=str(r.get("external_id") or "")))
 
     return findings
 

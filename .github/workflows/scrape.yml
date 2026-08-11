@@ -1,0 +1,124 @@
+# The database is deliberately not committed. It is a build artefact: this
+# workflow rebuilds it from data/price-history.csv on every run, which keeps the
+# repository free of a growing binary while the price series itself stays in
+# version control as diffable text.
+
+name: Daily prices
+
+on:
+  schedule:
+    # 05:20 UTC — after Romanian retailers have published the day's prices, and
+    # off the hour, where GitHub's scheduler is most congested.
+    - cron: "20 5 * * *"
+  workflow_dispatch:
+    inputs:
+      sites:
+        description: "Space-separated retailer keys, or blank for all"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  # Two runs writing the price series would conflict on the commit.
+  group: daily-prices
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,reports]"
+          # Mega Image and Selgros fingerprint the TLS handshake and reject
+          # Python HTTP clients, so they go through a real browser.
+          python -m playwright install --with-deps chromium
+
+      - name: Tests
+        # Cheap, and the alternative is publishing a price series produced by
+        # code that no longer parses what it thinks it parses.
+        run: python -m pytest -q
+
+      - name: Check out yesterday's prices
+        run: python -m winescraper history-file import
+
+      - name: Scrape
+        id: scrape
+        run: |
+          SITES="${{ github.event.inputs.sites }}"
+          if [ -n "$SITES" ]; then
+            ARGS=""; for s in $SITES; do ARGS="$ARGS --site $s"; done
+          else
+            ARGS="--all"
+          fi
+          # The run exits non-zero on a failed retailer, a degraded run or an
+          # open finding. None of those should lose the prices already
+          # collected, so the status is recorded and judged after the commit.
+          set +e
+          python -m winescraper run $ARGS --no-cache --format none -v 2>&1 | tee run.log
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Record the prices
+        run: python -m winescraper history-file export
+
+      - name: What changed
+        run: |
+          {
+            echo "## What changed"
+            echo '```'
+            python -m winescraper changes --limit 15
+            echo '```'
+            echo "## Data checks"
+            echo '```'
+            python -m winescraper check --show 5
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the price series
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/price-history.csv
+          if git diff --staged --quiet; then
+            echo "no price movement to record"
+          else
+            git commit -m "Prices for $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Reports
+        if: always()
+        run: |
+          python tools/build_workbook.py
+          python tools/build_rankings.py > /dev/null
+          python tools/build_facts.py
+          npm install docx --no-save --silent
+          node tools/build_issue_brief.js
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-${{ github.run_number }}
+          path: |
+            exports/*.xlsx
+            exports/*.docx
+            run.log
+          retention-days: 30
+
+      - name: Fail if the run was not clean
+        if: steps.scrape.outputs.status != '0'
+        run: |
+          echo "The scrape reported a problem — see the summary above." >&2
+          exit 1

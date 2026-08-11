@@ -6,10 +6,15 @@ dist/
 .venv/
 venv/
 
-# scraper output
-data/
+# scraper output. The directory contents are ignored rather than the directory
+# itself, because git will not descend into an excluded directory and the
+# negation below would never be reached.
+data/*
 *.sqlite
 *.sqlite3
+# The price series is the one thing a rebuilt database cannot regenerate, so it
+# is committed. Text, append-mostly, and it diffs.
+!data/price-history.csv
 exports/
 .cache/
 http_cache/

@@ -49,8 +49,14 @@ python -m winescraper history --limit 20
 python -m winescraper wines --min-retailers 5
 python -m winescraper wines --key purcari-chardonnay-alb-sec-0-75l-32377c
 
-# what looks wrong in the stored data
+# what moved since the previous run
+python -m winescraper changes
+
+# what looks wrong in the stored data, and settling a finding for good
 python -m winescraper check
+python -m winescraper decide review wine --retailer auchan --id 454898 \
+    --note "Moet & Chandon: real champagne, no colour or grape in the title"
+python -m winescraper decisions
 ```
 
 `run` writes to `data/wines.sqlite` and drops a timestamped CSV + JSONL per
@@ -192,6 +198,78 @@ Bringo (store-slug probes):
 - Wolt and Bolt both run their own dark-store groceries (Wolt Market, Bolt
   Market) that stock wine; adapters for those would be trivial subclasses if
   ever wanted.
+
+## Tracking prices over time
+
+One run is a snapshot. The value is in the second one, and everything here is
+built for that: a price observation is written **only when the price actually
+moves**, so a daily run adds a few hundred rows rather than 6,750 identical
+ones, and `winescraper changes` reports what happened.
+
+```
+2026-08-10 → 2026-08-11
+
+      1 price(s) moved   1 down, 0 up
+      0 new listing(s)
+      0 listing(s) no longer offered
+
+biggest drops:
+  penny             21.85 → 16.85       -23%  PELIN CARPATIN ROSE
+```
+
+`.github/workflows/scrape.yml` runs this daily. The database is **not**
+committed — it is a build artefact, and a growing SQLite binary in git is a bad
+trade. The price series is committed instead, as `data/price-history.csv`:
+
+```bash
+python -m winescraper history-file import   # before the scrape
+python -m winescraper run --all
+python -m winescraper history-file export   # after it
+```
+
+Importing first is what makes change detection work: from an empty database
+every price looks new and nothing is ever recorded as having moved. The file is
+text and append-mostly, so each day's commit is a readable diff of the prices
+that actually changed. The workbook and the brief are rebuilt on every run and
+uploaded as workflow artifacts rather than committed.
+
+Products the latest run did not see drop out of the current prices. A delisted
+wine is not a price, and without that rule it would sit in "latest" for ever at
+whatever it last cost.
+
+Two things only a second run can settle: Carrefour publishes no usable former
+price, so a promotion there is invisible in a single snapshot but obvious as a
+price drop between two; and the run-over-run drift check has nothing to compare
+against until then.
+
+## Decisions
+
+Some findings are correct and will never stop being flagged. "Sampanie Moet &
+Chandon" carries no colour, no grape and no sweetness, so it reaches the review
+queue on every run and is wine on every run. Others are real faults the code
+cannot see — Freshful lists two different Tohani wines under identical titles.
+Either way, a queue that repeats itself is a queue nobody reads.
+
+`decisions.jsonl` is where the answer goes. It is committed: these are human
+judgements about a catalogue, not derived data, so they belong next to the code
+rather than in a database that gets rebuilt.
+
+```bash
+winescraper decide review wine --retailer auchan --id 454898 --note "real champagne"
+winescraper decide 'wine spread' noted --wine tohani-feteasca-neagra-rosu-sec-0-75l-4b8943 \
+    --note "Freshful lists two unrelated Tohani wines under identical titles"
+winescraper decide 'not wine' exclude --retailer carrefour --id 99 --note "fizzy juice"
+```
+
+| verdict | effect |
+| --- | --- |
+| `wine` | the flag was wrong; stop reporting it |
+| `exclude` | the flag was right and the listing does not belong — dropped from exports and every report |
+| `noted` | real but unfixable here; stop reporting it, keep the reason |
+
+`exclude` is a denylist anyone can extend without touching the filter code. The
+file is append-only, so revising a judgement means adding a line and the earlier
+one stays on the record. `winescraper check --all` shows what has been settled.
 
 ## Wine identity
 

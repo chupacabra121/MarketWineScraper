@@ -128,3 +128,96 @@ def test_retailer_drift_needs_two_runs(tmp_path):
         run_id = store.start_run("penny")
         store.finish_run(run_id, "ok", seen=32, added=32)
         assert store.retailer_drift() == []
+
+
+# ------------------------------------------------ carrying history forward
+
+def _observed_on(store, day: str) -> None:
+    """Backdate everything, so a second run reads as a different day."""
+    store.conn.execute("UPDATE price_observations SET observed_at = ?", (day,))
+    store.conn.execute("UPDATE products SET first_seen = ?, last_seen = ?", (day, day))
+    store.conn.commit()
+
+
+def test_history_survives_a_rebuilt_database(tmp_path):
+    """The exact shape of a scheduled run: the database is a build artefact and
+    starts empty, so yesterday's prices come back from a committed CSV. Without
+    that, every price looks new and nothing is ever recorded as having moved."""
+    history = tmp_path / "price-history.csv"
+
+    with Store(tmp_path / "day1.sqlite") as day1:
+        day1.save_all([make(30.0, external_id="a"), make(50.0, external_id="b")])
+        _observed_on(day1, "2026-08-10T09:00:00+00:00")
+        assert day1.export_history(history) == 2
+
+    with Store(tmp_path / "day2.sqlite") as day2:
+        assert day2.import_history(history) == 2
+        # "a" moved, "b" did not, "c" is new.
+        day2.save_all([make(27.0, external_id="a"), make(50.0, external_id="b"),
+                       make(19.0, external_id="c")])
+        d = day2.digest()
+
+    assert d["runs"] == 2 and d["since"] == "2026-08-10"
+    assert (d["moved"], d["down"], d["up"]) == (1, 1, 0)
+    assert d["biggest_drops"][0]["old_price"] == 30.0
+    assert d["biggest_drops"][0]["new_price"] == 27.0
+    assert [p["name"] for p in d["appeared"]] == ["Vin rosu sec 0.75L"]
+
+
+def test_importing_twice_changes_nothing(tmp_path):
+    history = tmp_path / "h.csv"
+    with Store(tmp_path / "a.sqlite") as s:
+        s.save_all([make(30.0)])
+        s.export_history(history)
+    with Store(tmp_path / "b.sqlite") as s:
+        assert s.import_history(history) == 1
+        assert s.import_history(history) == 0
+        assert s.conn.execute(
+            "SELECT COUNT(*) c FROM price_observations").fetchone()["c"] == 1
+
+
+def test_importing_a_missing_file_is_not_an_error(tmp_path):
+    with Store(tmp_path / "a.sqlite") as s:
+        assert s.import_history(tmp_path / "nothing.csv") == 0
+
+
+def test_digest_reports_a_delisted_wine(tmp_path):
+    with Store(tmp_path / "a.sqlite") as s:
+        s.save_all([make(30.0, external_id="a"), make(50.0, external_id="b")])
+        _observed_on(s, "2026-08-10T09:00:00+00:00")
+        s.save_all([make(30.0, external_id="a")])       # "b" is no longer offered
+        d = s.digest()
+    assert [g["retailer"] for g in d["gone"]] == ["testmart"]
+
+
+def test_digest_says_so_when_there_is_only_one_run(tmp_path):
+    with Store(tmp_path / "a.sqlite") as s:
+        s.save_all([make(30.0)])
+        assert s.digest()["runs"] == 1
+
+
+def test_digest_on_an_empty_database(tmp_path):
+    with Store(tmp_path / "a.sqlite") as s:
+        assert s.digest()["runs"] == 0
+
+
+def test_a_delisted_wine_leaves_the_latest_prices(store):
+    """Carrying a price series forward would otherwise leave a wine that is no
+    longer sold sitting in "latest" at whatever it last cost."""
+    store.upsert(make(30.0, external_id="a"))
+    store.upsert(make(50.0, external_id="b"))
+    _observed_on(store, "2026-08-10T09:00:00+00:00")
+    store.upsert(make(30.0, external_id="a"))          # only "a" is still offered
+    store.conn.commit()
+    assert [r["external_id"] for r in store.latest()] == ["a"]
+
+
+def test_one_retailer_running_does_not_delist_the_others(store):
+    """A run covering some sites must not drop the rest out of the data."""
+    store.upsert(make(30.0, external_id="a"))
+    store.upsert(WineProduct(retailer="othermart", external_id="z",
+                             name="Vin alb sec 0.75L", price=40.0, volume_l=0.75))
+    _observed_on(store, "2026-08-10T09:00:00+00:00")
+    store.upsert(make(31.0, external_id="a"))          # testmart alone re-runs
+    store.conn.commit()
+    assert {r["retailer"] for r in store.latest()} == {"testmart", "othermart"}
