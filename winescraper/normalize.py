@@ -25,7 +25,10 @@ __all__ = [
 # Romanian comma decimals, optional thousands separator, optional currency.
 _PRICE_RE = re.compile(r"(\d{1,3}(?:[.\s]\d{3})*|\d+)(?:[.,](\d{1,2}))?\s*(?:lei|ron)?", re.I)
 
-_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(ml|cl|l|litri|litru)\b", re.I)
+# The trailing (?:sgr?|s)? absorbs Kaufland's deposit marker, which is glued to
+# the unit: "...13.5% 0.75LSG". Without it the real bottle size does not match
+# at all and the title's leading internal code ("12L") wins instead.
+_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(ml|cl|litri|litru|l)(?:sgr?|s)?\b", re.I)
 _ABV_RE = re.compile(r"(\d{1,2}(?:[.,]\d{1,2})?)\s*%\s*(?:vol|alc)?", re.I)
 _VINTAGE_RE = re.compile(r"\b(19[5-9]\d|20[0-4]\d)\b")
 
@@ -70,30 +73,70 @@ _SPARKLING_WORDS = [
 _NOT_WINE_PATTERNS = [
     # Wine-based drinks that are not wine: "Bautura aromatizata pe baza de vin
     # rosu Wine Chocolate", "Bautura carbogazoasa cu aroma de capsuni Robby Bubble"
-    r"bautura (aromatizata|carbogazoasa|racoritoare|spirtoasa)",
-    r"pe baza de vin",
+    # "Băutură" is the word a Romanian label uses precisely when the product is
+    # not wine — "Bautura spumoasa aromatizata 24K Gold Edition", "Băutură
+    # nealcoolică din vin dezalcoolizat", "Angelli Bautura Arom. Baza De Vin".
+    # No real wine in 6,758 listings is titled that way.
+    r"\bbautura\b",
+    r"(pe )?baza de vin",
     r"wine chocolate",
     r"\bgluhwein\b|\bvin fiert\b|\bmulled\b",
     # Ready-to-drink cocktails: "Spumant Cocktail to Go Zarea Hugo", "Il Spritz
-    # Mionetto", "Chandon Garden Spritz"
-    r"\bcocteil\b|\bcocktail\b|\bspritz\b|\bhugo\b|\bsangria\b|\bmojito\b",
-    r"sex on the beach|\baperol\b",
+    # Mionetto", "Chandon Garden Spritz", "LANDHAUS O-Spritzz Frizzante"
+    # "Mionetto IL Spr!z" spells its way around a plain word match.
+    r"\bcocteil\b|\bcocktail\b|spr[i!]t?z+\b|\bhugo\b|\bsangria\b|\bmojito\b",
+    r"sex on the beach|\baperol\b|\bbitter\b",
+    # Spirit brands that turn up in the wine aisle as RTD tins: "ABSOLUT
+    # PASSIONFRUIT MARTINI 5% 0.25L". Plain "Martini" is NOT here — Martini &
+    # Rossi's Asti and Prosecco are wine and stay in.
+    r"\babsolut\b|smirnoff|bacardi|jack daniel|captain morgan|jagermeist|"
+    r"beefeater|\bciroc\b|\bbaileys\b|\bjameson\b",
+    # Beer, which Kaufland occasionally files under wine:
+    # "KONIG LUDWIG ALBA 5.5%EP.12.6ST 0.5L SG"
+    r"\bbere\b|\bbeer\b|weiss?bier|weizen|\blager\b|\bpils\w*\b|\bipa\b|"
+    r"\bstout\b|hefe|konig ludwig",
     # Flavoured fizz sold beside wine: "Bambino Party ... aroma de Piersica"
-    r"aroma de (piersic|capsun|ananas|cocos|zmeur|visin|mar\b|fruct|lamai|portocal)",
+    r"aroma de (piersic|capsun|ananas|cocos|zmeur|visin|afin|mar\b|fruct|lamai|portocal)",
+    # A fruit named as the product's flavour: "Zarea Fruit Collection Capsuni",
+    # "DORATO Vin Spumant de Piersici", "Vin Din Mure", "ANGELLI APERITIV
+    # AFINE". Matched as exact whole words, never as a stem: the producer
+    # "Aurelia Visinescu" holds 30 real wines and must not be swept up, and
+    # "Mures" must not be read as "mure".
+    r"\b(capsuni|capsuna|zmeura|piersica|piersici|afine|mure|caise|cirese|"
+    r"visina|visine|pepene|ananas|mango|kiwi|aronia|coacaze|coacaza|catina)\b",
+    # Fruit wine is not grape wine. "mere", "pere", "prune" and "soc" are only
+    # safe in this construction: "Pere Ventura" is a Cava house and Crama
+    # Bratu's range is called "Grand-Pere".
+    r"vin (de |din )?(mere|pere|prune|soc)\b",
+    # "BFL ANGELLI APERITIV AFINE", "Aperitivo 500ml + Prosecco Orange"
+    r"fruits? collection|\baperitiv",
     # Sparkling tea, sold in the wine aisle at Freshful
     r"\bceai\b|\bsparkling tea\b",
     # Vermouth and aperitifs: "MARTINI BIANCO VERMUT", "CINZANO ROSSO VERMUT"
     r"\bvermut\b|\bvermouth\b|\bcampari\b",
     # Alcohol-free "wine": not wine, and often literally grape juice
-    r"fara alcool|dealcool|non-?alcohol|alcohol-?free",
+    # "dez?alcool" covers both the English "dealcoholised" and the Romanian
+    # "dezalcoolizat", which is how every retailer here actually spells it.
+    r"fara alcool|nealcoolic|dez?alcool|non-?alcohol|alcohol-?free",
+    # "Maschio Spumant Zero Alcool", "Zarea Zero alcool Cabernet Sauvignon"
+    r"zero alcoo?l|\b0 alcool|sans alcool|analcoolic",
     # A zero-alcohol claim, but not the "0" inside an ordinary "12.0% alcool":
     # the lookbehind stops the pattern matching a decimal place.
-    r"(?<![\d.,])0(?:[.,]0)?\s*%(\s*alc)?",
-    r"sampanie copii|\bfairies\b",
+    r"(?<![\d.,])0(?:[.,]0{1,2})?\s*%(\s*alc)?",
+    # Children's "sparkling": fizzy juice in a wine bottle. "Kidibul",
+    # "BAMBINO PARTY BAUT. COPII", "TOM&JERRY SPUMANT COPII", "FROZEN Spumant
+    # pentru Copii".
+    r"\bcopii\b|sampanie copii|\bfairies\b|\bkidibul\b|bambino",
     # Multipacks and gift sets price a bundle, not a bottle
     # "Pachet vin alb ... (3+1) x 0.75 l" prices a bundle. A single bottle in a
     # gift box is still one bottle, so gift packaging alone is not excluded.
     r"^pachet\b|\bbax\b|\b\d+\s*x\s*\d|\(\d\+\d\)",
+    # Two bottles priced as one line: "Kanga Mateus Rose 0.75L + Mateus Rose
+    # 0.187L". A gift box has one volume in its title; a pack has two.
+    r"\d\s*(l|ml)\b.*\+.*\d\s*(l|ml)\b",
+    # Bottle sold with glassware: the price covers the glasses too.
+    # "ZAREA EMOTIONS+2PAH.DS0,75", "MIONETTO ... 0,75 +2 PA."
+    r"\+\s*\d*\s*pah|\+\s*\d+\s*pa\b|\+\s*\d+\s*pa\.",
     # Food and accessories that mention wine
     r"\botet\b|\bvinete\b|\bvineta\b|\bvinificatie\b",
     r"\bcovrigi\b|\bbiscuit|\bpraline\b|\bbomboane\b|\bgem\b|sos de vin",
@@ -291,6 +334,30 @@ def parse_grapes(text: str) -> list[str]:
     return found
 
 
+# Above this a drink is a spirit, whatever aisle it sits in. Port and Marsala
+# are the strongest real wines here at 20%, so the ceiling has ample headroom.
+MAX_WINE_ABV = 24.0
+_PERCENT_RE = re.compile(r"(\d{1,2}(?:[.,]\d{1,2})?)\s*%")
+
+
+def states_spirit_strength(text: str) -> bool:
+    """True when a title advertises an alcohol content no wine reaches.
+
+    ``parse_abv`` returns ``None`` above its wine ceiling, which leaves the
+    field empty but says nothing about the product. "CARPATHIAN SM FET.NEAGRA
+    46% 0.7L" is a Fetească Neagră distillate shelved under red wine, and only
+    the stated strength gives it away.
+    """
+    for match in _PERCENT_RE.finditer(fold(text)):
+        try:
+            value = float(match.group(1).replace(",", "."))
+        except ValueError:
+            continue
+        if MAX_WINE_ABV < value <= 96:
+            return True
+    return False
+
+
 def looks_like_wine(text: str, category_path: str | None = None) -> bool:
     """Filter out non-wine items that live in or near wine categories.
 
@@ -298,7 +365,7 @@ def looks_like_wine(text: str, category_path: str | None = None) -> bool:
     endpoints match "vin" inside "vinete" (aubergines).
     """
     folded = fold(text)
-    if _NOT_WINE_RE.search(folded):
+    if _NOT_WINE_RE.search(folded) or states_spirit_strength(text):
         return False
     haystack = folded + " " + fold(category_path or "")
     return any(re.search(rf"\b{re.escape(w)}\b", haystack) for w in _WINE_WORDS)

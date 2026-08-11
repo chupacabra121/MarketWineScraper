@@ -45,6 +45,17 @@ class CarrefourAdapter(Adapter):
                 pages.add(int(match.group(1)))
         return min(max(pages), MAX_PAGES)
 
+    @staticmethod
+    def _reported_total(tree: HTMLParser) -> int | None:
+        """The pager's own count — "1-48 din 1434 produse"."""
+        node = tree.css_first("span.toolbar-number")
+        if not node:
+            return None
+        numbers = re.findall(r"\d[\d.]*", node.text(strip=True).replace(" ", ""))
+        if len(numbers) < 3:
+            return None
+        return int(numbers[-1].replace(".", "")) or None
+
     def _parse_tile(self, tile) -> WineProduct | None:
         product_id = tile.attributes.get("data-product-id")
         if not product_id:
@@ -106,7 +117,9 @@ class CarrefourAdapter(Adapter):
         first_html = await self.fetcher.get_text(self._page_url(1))
         tree = HTMLParser(first_html)
         total_pages = self._total_pages(tree)
-        log.info("[carrefour] %d pages of up to %d products", total_pages, PAGE_SIZE)
+        self.expected_total = self._reported_total(tree)
+        log.info("[carrefour] %d products across %d pages",
+                 self.expected_total or -1, total_pages)
 
         products: list[WineProduct] = []
 

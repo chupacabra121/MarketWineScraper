@@ -35,12 +35,17 @@ class Adapter:
     #: Short note surfaced by ``list-sites``.
     note: str = ""
 
+    #: Fraction of the retailer's reported total a run must reach to be trusted.
+    MIN_COVERAGE = 0.9
+
     def __init__(self, fetcher: Fetcher, *, limit: int | None = None,
                  browser=None, config: dict | None = None):
         self.fetcher = fetcher
         self.limit = limit
         self.browser = browser
         self.config = config or {}
+        #: How many products the retailer says the category holds, when it says.
+        self.expected_total: int | None = None
 
     async def scrape(self) -> list[WineProduct]:  # pragma: no cover - interface
         raise NotImplementedError
@@ -71,6 +76,19 @@ class Adapter:
         (Auchan's API returns Price=0 with AvailableQuantity=0), and a row with
         no price cannot contribute to a price dataset.
         """
+        products = list(products)
+        # A failed page is logged and skipped so one bad response cannot lose a
+        # whole run — but that also means a run can quietly return two thirds of
+        # a catalogue. Comparing against the retailer's own reported total turns
+        # that into a visible failure instead of a silent one.
+        if (self.expected_total and not self.limit
+                and len(products) < self.MIN_COVERAGE * self.expected_total):
+            raise RuntimeError(
+                f"{self.key}: collected {len(products)} of {self.expected_total} "
+                f"listings the retailer reports ("
+                f"{len(products) / self.expected_total:.0%}); refusing to publish "
+                "a partial run")
+
         seen: set[str] = set()
         kept: list[WineProduct] = []
         dropped_not_wine = dropped_unpriced = 0

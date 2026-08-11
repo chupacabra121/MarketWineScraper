@@ -40,3 +40,21 @@ def test_meta_price_is_not_treated_as_a_discount():
     p = CarrefourAdapter(fetcher=None)._parse_tile(_tile())
     assert p.list_price is None
     assert p.on_promotion is False
+
+
+PAGER = """
+<div class="pages-wrapper">
+  <p class="toolbar-amount">
+    <span class="toolbar-number"><strong>1</strong>-<strong>48</strong> din <strong>1434</strong> produse</span>
+  </p>
+</div>
+"""
+
+
+def test_reported_total_read_from_the_pager():
+    """The pager's own count is what a partial run gets measured against."""
+    assert CarrefourAdapter._reported_total(HTMLParser(PAGER)) == 1434
+
+
+def test_reported_total_absent_when_there_is_no_pager():
+    assert CarrefourAdapter._reported_total(HTMLParser("<div></div>")) is None

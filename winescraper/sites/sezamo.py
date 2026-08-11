@@ -169,6 +169,9 @@ class SezamoAdapter(Adapter):
             ids = ids[:self.limit]
         if not ids:
             return []
+        # Each of the three hydration passes can lose a batch to a transient
+        # error; the id list is the yardstick for whether that happened.
+        self.expected_total = len(ids)
 
         details = await self._batch(DETAIL_URL, ids, "details")
         prices = await self._batch(PRICES_URL, ids, "prices")

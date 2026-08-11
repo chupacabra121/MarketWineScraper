@@ -55,6 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--format", dest="formats", default="csv,jsonl",
                      help="comma-separated export formats, or 'none'")
     run.add_argument("--config", type=Path, help="JSON file of per-site settings")
+    run.add_argument("--no-check", action="store_true",
+                     help="skip the data checks that normally follow a run")
 
     listing = sub.add_parser("list-sites", parents=[common], help="show retailers and their status")
     listing.add_argument("--json", action="store_true")
@@ -117,7 +119,7 @@ def cmd_run(args) -> int:
     results = asyncio.run(run_sites(keys, options))
 
     formats = [f.strip() for f in args.formats.split(",") if f.strip() and f.strip() != "none"]
-    failures = 0
+    failures = degraded = 0
     print()
     for result in results:
         if result.status == "error":
@@ -130,13 +132,27 @@ def cmd_run(args) -> int:
         note = f"{result.count:>5} wines"
         if not args.dry_run:
             note += f", {result.price_changes} price change(s) recorded"
+        if result.degraded:
+            degraded += 1
+            note += f"  ⚠ {result.warnings} recoverable failure(s)"
         print(f"  {result.site:<12} {note}")
+        for message in result.warning_samples:
+            print(f"  {'':<12}   ! {message[:100]}")
         if formats and result.products:
             for path in export_run(result.products, args.export_dir, result.site, formats):
                 print(f"  {'':<12} → {path}")
     total = sum(r.count for r in results)
     print(f"\n{total} wines across {len([r for r in results if r.count])} retailer(s)")
-    return 1 if failures else 0
+    if degraded:
+        print(f"{degraded} retailer(s) completed with recoverable failures — "
+              "the catalogue may be incomplete")
+
+    # Validating here rather than leaving it to a separate command is the point:
+    # a check nobody remembers to run catches nothing.
+    suspect = 0
+    if not args.dry_run and not args.no_check:
+        suspect = _report_findings(args.db, show=3)
+    return 1 if (failures or degraded or suspect) else 0
 
 
 def cmd_export(args) -> int:
@@ -182,32 +198,45 @@ def cmd_stats(args) -> int:
     return 0
 
 
-def cmd_check(args) -> int:
-    """Report rows that look wrong, so a run can be inspected before publishing."""
+def _report_findings(db: Path, site: str | None = None, show: int = 15) -> int:
+    """Print the data checks over the latest stored prices. Returns the count."""
     from .validate import check, summarise
 
-    with Store(args.db) as store:
-        rows = [dict(r) for r in store.latest(args.site)]
+    with Store(db) as store:
+        rows = [dict(r) for r in store.latest(site)]
+        drift = store.retailer_drift()
     if not rows:
         print("database is empty")
         return 0
 
     findings = check(rows)
-    counts = summarise(findings)
-    print(f"checked {len(rows):,} rows")
+    print(f"\nchecked {len(rows):,} rows")
+    if drift:
+        print("run-over-run drift:")
+        for d in drift:
+            print(f"  {d['retailer']:<14} {d['previous']:>5} → {d['current']:<5} rows "
+                  f"({d['change']:+.0%})")
     if not findings:
         print("no problems found")
         return 0
 
+    counts = summarise(findings)
     print(f"{len(findings)} finding(s):")
     for kind, count in counts.items():
-        print(f"  {kind:<16} {count}")
+        print(f"  {kind:<22} {count}")
     for kind in counts:
-        examples = [f for f in findings if f.kind == kind][:args.show]
+        examples = [f for f in findings if f.kind == kind][:show]
         print(f"\n{kind}:")
         for f in examples:
             print(f"  {f.retailer:<14} {f.name[:56]:<56} {f.detail}")
-    # Findings are advisory: a real 2,541-lei bottle looks like an outlier too.
+    return len(findings)
+
+
+def cmd_check(args) -> int:
+    """Report rows that look wrong, so a run can be inspected before publishing."""
+    # Findings are advisory: a real 2,541-lei bottle looks like an outlier too,
+    # so this reports rather than fails.
+    _report_findings(args.db, args.site, args.show)
     return 0
 
 

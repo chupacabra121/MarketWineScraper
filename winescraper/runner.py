@@ -15,6 +15,26 @@ from .storage import Store
 log = logging.getLogger(__name__)
 
 
+class WarningCounter(logging.Handler):
+    """Count warnings emitted while one adapter runs.
+
+    Adapters log-and-continue on a failed page so that one bad response cannot
+    lose a whole run. The cost is that a degraded run and a clean one print the
+    same summary. Counting the warnings makes the difference visible without
+    editing the recovery logic in thirteen adapters.
+    """
+
+    def __init__(self):
+        super().__init__(level=logging.WARNING)
+        self.count = 0
+        self.messages: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.count += 1
+        if len(self.messages) < 10:
+            self.messages.append(record.getMessage())
+
+
 @dataclass
 class SiteResult:
     site: str
@@ -23,10 +43,18 @@ class SiteResult:
     price_changes: int = 0
     status: str = "ok"
     error: str | None = None
+    #: Recoverable failures — a page that 500ed, a batch that timed out.
+    warnings: int = 0
+    warning_samples: list[str] = field(default_factory=list)
 
     @property
     def count(self) -> int:
         return len(self.products)
+
+    @property
+    def degraded(self) -> bool:
+        """Completed, but not cleanly: some of the catalogue may be missing."""
+        return self.status == "ok" and self.warnings > 0
 
 
 @dataclass
@@ -82,6 +110,9 @@ async def _run_one(key, cls, fetcher, browser, store, options: RunOptions) -> Si
     run_id = store.start_run(key) if store else None
     adapter = cls(fetcher, limit=options.limit, browser=browser,
                   config=options.site_config.get(key, {}))
+    counter = WarningCounter()
+    root = logging.getLogger("winescraper")
+    root.addHandler(counter)
     try:
         log.info("[%s] scraping…", key)
         result.products = await adapter.scrape()
@@ -92,8 +123,15 @@ async def _run_one(key, cls, fetcher, browser, store, options: RunOptions) -> Si
         if store and run_id is not None:
             store.finish_run(run_id, "error", message=result.error)
         return result
+    finally:
+        root.removeHandler(counter)
+        result.warnings = counter.count
+        result.warning_samples = counter.messages
 
     log.info("[%s] %d wines", key, result.count)
+    if result.degraded:
+        log.warning("[%s] completed with %d recoverable failure(s); the "
+                    "catalogue may be incomplete", key, result.warnings)
     if store and run_id is not None:
         seen, added = store.save_all(result.products, run_id)
         result.saved, result.price_changes = seen, added

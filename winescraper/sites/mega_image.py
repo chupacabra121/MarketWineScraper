@@ -136,6 +136,7 @@ class MegaImageAdapter(Adapter):
             result = (data.get("data") or {}).get("categoryProductSearch") or {}
             pagination = result.get("pagination") or {}
             total_pages = int(pagination.get("totalPages") or 1)
+            self.expected_total = int(pagination.get("totalResults") or 0) or None
             for doc in result.get("products") or []:
                 product = self._to_product(doc)
                 if product:

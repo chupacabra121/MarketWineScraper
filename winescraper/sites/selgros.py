@@ -23,9 +23,12 @@ log = logging.getLogger(__name__)
 
 SEARCH_URL = ("https://www.selgros.ro/proxy/schaufenster/docs/"
               "search.post.search?api-version=2024-07-01")
-# Client-side Azure Search query key, shipped in Selgros' own frontend bundle.
-# Overridable via config in case they rotate it.
-DEFAULT_API_KEY = "362af8be6e483a40450b2c446cdf9981d82b8f637a06d07db68901cdce74be1f"
+# Client-side Azure Search query key, shipped in Selgros' own frontend. It DOES
+# rotate — the first key here stopped working mid-project, and the proxy reports
+# a rejected key as "HTTP 400: Missing product ID", which reads like a malformed
+# request rather than an auth failure. The adapter therefore discovers the
+# current key from the live page when the configured one is refused.
+DEFAULT_API_KEY = "df056f8f4256465aeac1e5502767383f6c1fdf6f7e44947b5ccf01b2d95064ce"
 DEFAULT_MARKET = 350          # Bucuresti Berceni
 PAGE_SIZE = 50
 PRODUCT_URL = "https://www.selgros.ro/exploreaza-sortimentul-selgros/product/{slug}-{pid}"
@@ -49,6 +52,7 @@ class SelgrosAdapter(Adapter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._warmed = False
+        self._discovered_key: str | None = None
 
     @property
     def market(self) -> int:
@@ -56,19 +60,72 @@ class SelgrosAdapter(Adapter):
 
     @property
     def api_key(self) -> str:
-        return str(self.config.get("api_key") or DEFAULT_API_KEY)
+        return str(self._discovered_key or self.config.get("api_key") or DEFAULT_API_KEY)
+
+    async def _discover_api_key(self) -> str | None:
+        """Read the current query key off a live search request.
+
+        The key is not in the page HTML or in any statically-linked bundle; the
+        search web component supplies it at runtime. Watching the page make its
+        own first search is the only reliable way to read it.
+        """
+        if self.browser is None:
+            return None
+        found: list[str] = []
+
+        async def on_request(request):
+            if "search.post.search" in request.url and not found:
+                headers = await request.all_headers()
+                key = headers.get("api-key")
+                if key:
+                    found.append(key)
+
+        self.browser.context.on("request", on_request)
+        try:
+            await self.browser.page.goto(CATALOGUE_URL, wait_until="domcontentloaded",
+                                         timeout=60000)
+            for _ in range(20):
+                if found:
+                    break
+                await self.browser.page.wait_for_timeout(1000)
+        except Exception as exc:
+            log.warning("[selgros] key discovery failed: %s", exc)
+        finally:
+            self.browser.context.remove_listener("request", on_request)
+
+        if found:
+            log.info("[selgros] discovered a fresh api-key from the live page")
+            return found[0]
+        return None
 
     def _headers(self) -> dict[str, str]:
         return {"api-key": self.api_key, "Referer": CATALOGUE_URL}
 
-    async def _search(self, payload: dict) -> dict:
-        """POST a search, preferring the browser and falling back to plain HTTP."""
+    async def _post(self, payload: dict) -> dict:
         if self.browser is not None:
-            if not self._warmed:
-                await self.browser.warm_up(CATALOGUE_URL, wait_ms=4000)
-                self._warmed = True
             return await self.browser.post_json(SEARCH_URL, payload, headers=self._headers())
         return await self.fetcher.post_json(SEARCH_URL, payload, headers=self._headers())
+
+    async def _search(self, payload: dict) -> dict:
+        """POST a search, rediscovering the query key if the current one is refused."""
+        if self.browser is not None and not self._warmed:
+            await self.browser.warm_up(CATALOGUE_URL, wait_ms=4000)
+            self._warmed = True
+        try:
+            return await self._post(payload)
+        except Exception as exc:
+            if "Missing product ID" not in str(exc) or self._discovered_key:
+                raise
+            log.warning("[selgros] query key refused; rediscovering it from the page")
+            key = await self._discover_api_key()
+            if not key:
+                raise
+            self._discovered_key = key
+            self._warmed = False
+            if self.browser is not None:
+                await self.browser.warm_up(CATALOGUE_URL, wait_ms=4000)
+                self._warmed = True
+            return await self._post(payload)
 
     def _market_filter(self) -> str:
         return f"markets/any(m: m eq {self.market})"
@@ -86,8 +143,12 @@ class SelgrosAdapter(Adapter):
         facets = (data.get("@search.facets") or {}).get("categoryPath") or []
         paths = [f["value"] for f in facets
                  if str(f.get("value", "")).lower().startswith("vin")]
+        # The facet counts are the index's own tally for those branches, so they
+        # are the yardstick for whether a paging error lost part of the range.
+        indexed = sum(f["count"] for f in facets if f["value"] in paths)
+        self.expected_total = indexed or None
         log.info("[selgros] %d wine category paths, %d products indexed",
-                 len(paths), sum(f["count"] for f in facets if f["value"] in paths))
+                 len(paths), indexed)
         return paths
 
     @staticmethod

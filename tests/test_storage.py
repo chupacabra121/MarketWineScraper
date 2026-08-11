@@ -97,3 +97,34 @@ def test_stats(store):
     stats = store.stats()
     assert stats[0]["retailer"] == "testmart"
     assert stats[0]["products"] == 2
+
+
+def test_retailer_drift_flags_a_collapsed_run(tmp_path):
+    """A retailer that halves between runs is the shape of a silent truncation."""
+    with Store(tmp_path / "d.sqlite") as store:
+        for site, seen in [("mega_image", 218), ("auchan", 860),
+                           ("mega_image", 146), ("auchan", 864)]:
+            run_id = store.start_run(site)
+            store.finish_run(run_id, "ok", seen=seen, added=seen)
+        drift = {d["retailer"]: d for d in store.retailer_drift()}
+    assert set(drift) == {"mega_image"}
+    assert drift["mega_image"]["previous"] == 218
+    assert drift["mega_image"]["current"] == 146
+    assert drift["mega_image"]["change"] == pytest.approx(-0.330, abs=0.001)
+
+
+def test_retailer_drift_ignores_failed_runs(tmp_path):
+    """A run that errored has no count to compare against."""
+    with Store(tmp_path / "d.sqlite") as store:
+        ok = store.start_run("selgros")
+        store.finish_run(ok, "ok", seen=500, added=500)
+        bad = store.start_run("selgros")
+        store.finish_run(bad, "error", message="HTTP 400")
+        assert store.retailer_drift() == []
+
+
+def test_retailer_drift_needs_two_runs(tmp_path):
+    with Store(tmp_path / "d.sqlite") as store:
+        run_id = store.start_run("penny")
+        store.finish_run(run_id, "ok", seen=32, added=32)
+        assert store.retailer_drift() == []

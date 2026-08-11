@@ -132,6 +132,7 @@ class FreshfulAdapter(Adapter):
     async def scrape(self) -> list[WineProduct]:
         payload = await self._first_page()
         total = payload.get("total") or 0
+        self.expected_total = int(total) or None
         pages = min(int(payload.get("pages") or 1), MAX_PAGES)
         log.info("[freshful] %d wines across %d pages", total, pages)
 

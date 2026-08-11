@@ -184,6 +184,49 @@ Bringo (store-slug probes):
   Market) that stock wine; adapters for those would be trivial subclasses if
   ever wanted.
 
+## Data quality
+
+Two things can be wrong in a row: the price, and whether the thing is wine at
+all. Both have been wrong in this project, so both are checked rather than
+assumed. `winescraper check` runs the checks below, and a `run` performs them
+automatically at the end unless `--no-check` is passed.
+
+**Is the price right?** Every site that publishes its own price per litre gives
+an independent answer, computed server-side from the same package size and price
+we parsed. Disagreement means we misread the price, the volume, or both. On the
+current run 6,743 of 6,749 rows agree exactly; the six that do not are all
+Freshful listings whose own title and unit-price label contradict each other.
+
+Cheap sanity limits back this up — a price per litre below 5 RON/L or above
+4,000, or twelve times its retailer's median — but those only bracket a
+plausible range. The unit-price cross-check is the only one that tests a scraped
+price against the retailer.
+
+**Is it wine?** The wine aisle reliably contains things that are not wine:
+corkscrews, vinegar, alcohol-free "sparkling", fruit wine, RTD cocktails,
+children's fizzy juice, and — in one Kaufland listing — a wheat beer. These are
+excluded by name, and every rule carries the real listing that motivated it as a
+test case.
+
+A denylist only rejects what someone has already seen, so there is a second,
+opposite check. Each row is scored on independent wine signals: a wine word in
+the title, a parsed colour, a grape, a sweetness, an ABV of 8% or more. Rows
+scoring below two go into a **review queue** — about 2.7% of a run, small enough
+to read. That queue is what found fruit wine ("Vin de Coacaze") and
+de-alcoholised wine ("Spumant Zero Alcool"); no hand-written rule was looking
+for either.
+
+**Did the run actually finish?** Adapters log-and-continue on a failed page so
+one bad response cannot lose a whole run — which once meant Mega Image returned
+146 of 218 wines and reported success. Three things now make that visible:
+
+- adapters that know their retailer's own total refuse to publish a run below
+  90% of it (`MIN_COVERAGE`)
+- warnings are counted per adapter, so a run that recovered from failures is
+  marked degraded in the summary and exits non-zero
+- each retailer is compared against its own previous run, and a swing over 10%
+  is reported — the check that needs no prediction of what might break
+
 ## Notes on fragility
 
 Scrapers break when sites change. The design pushes back where it cheaply can:
@@ -192,12 +235,15 @@ Scrapers break when sites change. The design pushes back where it cheaply can:
   taxonomy change shows up as fewer categories, not zero products.
 - Mega Image is queried with **our own GraphQL document** rather than the site's
   persisted-query hash, which changes on every frontend deploy.
+- Selgros' Azure Search query key rotates. When the proxy refuses the configured
+  key — reported, unhelpfully, as `HTTP 400: Missing product ID` — the adapter
+  **reads the current key off the live page** by watching the site make its own
+  search request, and retries.
 - Adapters that return nothing fail loudly in the run summary, and every run is
   recorded in the `runs` table with its error.
 
-The Selgros Azure Search query key and the Kaufland offer-page layout are the
-most likely things to need updating; both are isolated to a single constant or
-selector in their adapter.
+The Kaufland offer-page layout is the most likely thing to need updating, and it
+is isolated to a single selector in its adapter.
 
 ## Tests
 
@@ -206,5 +252,12 @@ python -m pytest
 ```
 
 Covers price/volume/ABV/colour/sweetness/grape parsing against real listing
-titles, the non-wine filter, and storage behaviour including the
-only-on-change price history rule.
+titles, the non-wine filter, the data checks, and storage behaviour including
+the only-on-change price history rule.
+
+Every string in the parsing and filter tests is a listing that was actually
+collected from a wine category, and every bad row found in a run is added here
+before it is fixed. That is what stops a fix from being quietly undone: the
+Kaufland volume rule, the alcohol-free rule that used to match `12.0% alcool`,
+and the producer "Aurelia Visinescu" not being read as a cherry all survive as
+tests rather than as remembered intentions.

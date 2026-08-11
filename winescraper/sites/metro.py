@@ -280,6 +280,10 @@ class MetroAdapter(Adapter):
             if self.limit and len(products) >= self.limit:
                 break
 
+        # A whole batch can also drop out of _hydrate on a network error, which
+        # loses products rather than prices; the search ids are the yardstick.
+        self.expected_total = total_ids or None
+
         # The null-price transient is non-deterministic; publishing a mostly
         # price-less run would poison the history, so fail loudly instead.
         priced = sum(1 for p in products if p.price is not None)

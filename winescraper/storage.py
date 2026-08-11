@@ -215,8 +215,8 @@ class Store:
     def latest(self, retailer: str | None = None) -> list[sqlite3.Row]:
         """Most recent price observation per product."""
         sql = """
-        SELECT p.*, o.price, o.currency, o.list_price, o.unit_price, o.price_per_litre,
-               o.on_promotion, o.offer_type, o.in_stock, o.observed_at
+        SELECT p.*, o.price, o.currency, o.list_price, o.unit_price, o.unit_price_unit,
+               o.price_per_litre, o.on_promotion, o.offer_type, o.in_stock, o.observed_at
         FROM products p
         JOIN price_observations o ON o.id = (
             SELECT id FROM price_observations
@@ -258,6 +258,38 @@ class Store:
             "SELECT retailer, COUNT(*) AS products, MAX(last_seen) AS last_seen "
             "FROM products GROUP BY retailer ORDER BY retailer"
         ).fetchall()
+
+    def retailer_drift(self, threshold: float = 0.10) -> list[dict]:
+        """Retailers whose row count moved sharply against their previous run.
+
+        Every specific check in ``validate`` tests something someone thought to
+        look for. This one does not: it just compares each retailer against
+        itself a run ago, which is how a problem nobody predicted — a category
+        renamed, a filter over-matching, an endpoint quietly paginating
+        differently — shows up first.
+        """
+        rows = self.conn.execute(
+            """
+            WITH ok AS (
+                SELECT site, products_seen,
+                       ROW_NUMBER() OVER (PARTITION BY site
+                                          ORDER BY started_at DESC, id DESC) AS rn
+                FROM runs WHERE status = 'ok'
+            )
+            SELECT c.site AS retailer, p.products_seen AS previous,
+                   c.products_seen AS current
+            FROM ok c JOIN ok p ON p.site = c.site AND p.rn = 2
+            WHERE c.rn = 1 AND p.products_seen > 0
+            ORDER BY c.site
+            """
+        ).fetchall()
+        drift = []
+        for row in rows:
+            change = (row["current"] - row["previous"]) / row["previous"]
+            if abs(change) >= threshold:
+                drift.append({"retailer": row["retailer"], "previous": row["previous"],
+                              "current": row["current"], "change": change})
+        return drift
 
 
 def open_store(path: str | Path) -> Store:

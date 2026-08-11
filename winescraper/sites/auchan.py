@@ -74,12 +74,10 @@ class AuchanAdapter(Adapter):
         while offset <= MAX_OFFSET:
             url = (f"{SEARCH_URL}?fq=C:/{category_path}/"
                    f"&_from={offset}&_to={offset + PAGE_SIZE - 1}")
-            try:
-                page = await self.fetcher.get_json(url)
-            except Exception as exc:
-                log.warning("[auchan] category %s offset %s failed: %s",
-                            category_path, offset, exc)
-                break
+            # VTEX has no total to check a run against, so a swallowed error
+            # here would silently truncate the category at this offset with
+            # nothing downstream able to notice. Fail the run instead.
+            page = await self.fetcher.get_json(url)
             if not page:
                 break
             products.extend(page)
