@@ -10,7 +10,12 @@ fold = bx.fold
 canon = bx.canon_country
 
 SHELF = {"auchan", "carrefour", "selgros", "metro", "freshful", "sezamo", "mega_image", "penny"}
-shelf_rows = [r for r in rows if r["retailer"] in SHELF]
+PLATFORM = {"kaufland_bolt", "penny_bolt", "profi_glovo", "supeco_glovo"}
+# Assortment rankings count every source. Restricting them to shelf-price
+# retailers dropped Kaufland's 737 wines, Supeco's 101 and Profi's 69 from every
+# brand, variety and style ranking, which understated the market. Price basis
+# still matters for retailer-vs-retailer comparison, so `depth` carries it.
+shelf_rows = [r for r in rows if r["retailer"] in SHELF or r["retailer"] in PLATFORM]
 std = [r for r in shelf_rows if r.get("price") and 0.7 <= (r.get("volume_l") or 0) <= 0.8]
 
 out = {}
@@ -108,6 +113,17 @@ for s in ("sec", "demisec", "demidulce", "dulce"):
                  "share": round(len(rs) / len(std), 3)}
 out["sweetness"] = sw
 
+# Sweetness x colour, so the price effect can be shown to hold within each colour
+# rather than being a colour effect in disguise.
+sxc = {}
+for c in ("alb", "rosu", "rose"):
+    sxc[c] = {}
+    for sname in ("sec", "demisec", "demidulce", "dulce"):
+        v = [r["price"] / r["volume_l"] for r in std
+             if r.get("colour") == c and r.get("sweetness") == sname]
+        sxc[c][sname] = round(statistics.median(v), 2) if len(v) >= 25 else None
+out["sweetness_by_colour"] = sxc
+
 # -------------------------------------------------------------- COUNTRY
 cs = defaultdict(list)
 for r in std:
@@ -168,7 +184,7 @@ band_tbl = []
 for label, lo, hi in bands:
     rs = [r for r in std if lo <= r["price"] < hi]
     row = {"band": label, "n": len(rs), "share": round(len(rs) / len(std), 3)}
-    for ret in ("auchan", "carrefour", "metro", "selgros", "freshful", "sezamo"):
+    for ret in ("auchan", "carrefour", "metro", "selgros", "freshful", "sezamo", "kaufland_bolt"):
         sub = [r for r in std if r["retailer"] == ret and lo <= r["price"] < hi]
         tot = len([r for r in std if r["retailer"] == ret]) or 1
         row[ret] = round(len(sub) / tot, 3)
@@ -177,14 +193,15 @@ out["bands"] = band_tbl
 
 # ---------------------------------------------------------- RETAILER DEPTH
 depth = []
-for ret in SHELF:
+for ret in (SHELF | PLATFORM):
     rs = [r for r in std if r["retailer"] == ret]
     if len(rs) < 25:
         continue
     ppl = sorted(r["price"] / r["volume_l"] for r in rs)
     brands = len({fold(r.get("brand") or "") for r in rs if r.get("brand")})
     depth.append({
-        "retailer": ret, "n": len(rs), "brands": brands,
+        "retailer": ret, "basis": "Shelf" if ret in SHELF else "Platform",
+        "n": len(rs), "brands": brands,
         "median": round(statistics.median(ppl), 2),
         "p10": round(ppl[len(ppl) // 10], 2), "p90": round(ppl[9 * len(ppl) // 10], 2),
         "over200": round(sum(1 for r in rs if r["price"] >= 200) / len(rs), 3),

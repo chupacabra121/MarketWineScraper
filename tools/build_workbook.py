@@ -351,6 +351,10 @@ def build_retailer_summary(wb, retailers, last, stats_by_ret, rows):
     for cidx in range(1, 11):
         ws.cell(row=total, column=cidx).font = Font(name=FONT, size=10, bold=True)
     note(ws, total + 2,
+         "One row per SOURCE, not per retailer. Kaufland appears twice: 'Kaufland (Bolt)' is its "
+         "full range and 'Kaufland (leaflet)' is only the handful of wines on weekly promotion — "
+         "read the Bolt row as Kaufland's range. Penny likewise has a wider Bolt feed than its own "
+         "site. The two counts are not additive; the feeds overlap. "
          "Price columns are restricted to 0.70-0.80 L bottles so retailers are compared "
          "like for like; bag-in-box and 0.2 L splits would otherwise distort the range. "
          "Kaufland (leaflet) covers promotional wines only, so its 100% promo share is "

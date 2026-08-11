@@ -225,8 +225,11 @@ function panel(title, lines) {
 const M = F.matches;
 const W = F.wins.metro;
 const depth = R.depth;
-const full = depth.filter((d) => d.n >= 200);
+// The price-span claim compares like with like: shelf basis only. Platform
+// retailers appear in the exhibit but are excluded from this comparison.
+const full = depth.filter((d) => d.n >= 200 && d.basis === 'Shelf');
 const frLo = full[0], frHi = full[full.length - 1];
+const platformFull = depth.filter((d) => d.n >= 200 && d.basis === 'Platform');
 
 // ============================== COVER ====================================
 kids.push(new Paragraph({ spacing: { before: 0, after: 0, line: 2400, lineRule: LineRuleType.EXACT }, children: [] }));
@@ -316,34 +319,37 @@ kids.push(bullet([t('Store price changes only. ', { bold: true }),
 kids.push(head('Which retailers can be covered?'));
 kids.push(body([
   t('Thirteen sources are live. ', { bold: true }),
-  t('Nine read the retailer\'s own website. Four read a delivery platform, used where the shop '
-    + 'has no usable site of its own. Together they cover every Romanian retailer with a wine '
-    + 'range worth tracking (Exhibit 1).'),
+  t('covering eleven retailers. Nine read a retailer\'s own website; four read a delivery '
+    + 'platform, used where the shop has no usable site of its own. Kaufland and Profi are '
+    + 'readable only this way. Together they cover every Romanian retailer with a wine range '
+    + 'worth tracking (Exhibit 1).'),
 ]));
 
 kids.push(...exhibit({
-  title: 'Thirteen sources cover every Romanian retailer with a significant wine range.',
-  subtitle: { label: 'Wine listings collected by retailer and source', unit: 'number of listings' },
-  headers: ['Retailer', 'Read from', 'Listings', 'What it covers'],
+  title: 'Thirteen sources cover eleven retailers and every significant wine range in the market.',
+  subtitle: { label: 'Wine listings collected, by retailer', unit: 'number of listings' },
+  headers: ['Retailer', 'Read from', 'Listings', 'What is covered'],
   rows: [
     ['Carrefour', 'Own site', n(F.by_retailer.carrefour), 'Full range'],
     ['Auchan', 'Own site', n(F.by_retailer.auchan), 'Full range; most attributes published'],
     ['Selgros', 'Own site', n(F.by_retailer.selgros), 'Full range; price set per depot'],
     ['METRO', 'Own site', n(F.by_retailer.metro), 'Full range; 6-bottle minimum common'],
     ['Freshful', 'Own site', n(F.by_retailer.freshful), 'Full range; delivery-only retailer'],
-    ['Kaufland', 'Bolt Food', n(F.by_retailer.kaufland_bolt), 'Full range through the platform'],
+    ['Kaufland', 'Bolt Food', n(F.by_retailer.kaufland_bolt),
+      `Full range; weekly leaflet adds ${F.by_retailer.kaufland} promotional prices`],
     ['Sezamo', 'Own site', n(F.by_retailer.sezamo), 'Full range; delivery-only retailer'],
     ['Mega Image', 'Own site', n(F.by_retailer.mega_image), 'Full range'],
-    ['Supeco', 'Glovo', n(F.by_retailer.supeco_glovo), 'Only available route'],
-    ['Penny', 'Bolt Food', n(F.by_retailer.penny_bolt), 'Wider than the retailer\'s own site'],
-    ['Profi', 'Glovo', n(F.by_retailer.profi_glovo), 'Only available route'],
-    ['Penny', 'Own site', n(F.by_retailer.penny), 'Shelf-price reference'],
-    ['Kaufland', 'Leaflet', n(F.by_retailer.kaufland), 'Weekly promotions only'],
+    ['Supeco', 'Glovo', n(F.by_retailer.supeco_glovo), 'Only available route; own site blocked'],
+    ['Penny', 'Bolt Food', n(F.by_retailer.penny_bolt),
+      `Wider than the retailer's own site, which lists ${F.by_retailer.penny}`],
+    ['Profi', 'Glovo', n(F.by_retailer.profi_glovo), 'Only available route; no web shop exists'],
   ],
   widths: [1900, 1500, 1200, 5600],
   align: ['l', 'l', 'r', 'l'],
-  note: 'Penny and Kaufland appear twice because the second feed covers a different part of the '
-    + 'range. Keeping them separate prevents platform prices being mixed with shelf prices.',
+  note: 'Kaufland and Penny are each read from two sources. The larger is shown; the counts are '
+    + 'not added together because the two feeds overlap. Kaufland\'s leaflet carries only '
+    + `${F.by_retailer.kaufland} promotional wines, which is why the platform feed is the primary `
+    + 'route for that retailer.',
 }));
 
 kids.push(sub('Three kinds of price, which must not be pooled'));
@@ -413,24 +419,28 @@ kids.push(body([
 ]));
 
 kids.push(...exhibit({
-  title: 'Median price per litre varies by 71 percent across full-range retailers, but entry '
+  title: 'Median price per litre varies by 71 percent across shelf-price retailers, but entry '
     + 'prices do not.',
   subtitle: { label: 'Price position by retailer, 0.75 litre bottles', unit: 'RON per litre' },
-  headers: ['Retailer', 'Bottles', 'Brands', 'Cheapest 10%', 'Median', 'Dearest 10%', '200+ lei'],
+  headers: ['Retailer', 'Price basis', 'Bottles', 'Cheapest 10%', 'Median', 'Dearest 10%', '200+ lei'],
   rows: depth.map((d) => [
-    LAB[d.retailer], n(d.n), n(d.brands), money(d.p10), money(d.median), money(d.p90),
+    LAB[d.retailer], d.basis, n(d.n), money(d.p10), money(d.median), money(d.p90),
     pct(d.over200, 1),
   ]),
-  widths: [1900, 1150, 1150, 1550, 1350, 1500, 1600],
-  note: 'Shelf-price retailers only. Penny publishes no brand field, so its brand count reads '
-    + 'zero. "200+ lei" is the share of that retailer\'s bottles priced above 200 lei.',
+  widths: [1900, 1350, 1150, 1500, 1350, 1500, 1450],
+  align: ['l', 'l', 'r', 'r', 'r', 'r', 'r'],
+  note: 'Platform rows are delivery-app prices and are not directly comparable with shelf rows; '
+    + 'Glovo additionally includes the 0.50 lei bottle deposit. "200+ lei" is the share of that '
+    + 'retailer\'s bottles priced above 200 lei.',
 }));
 
-kids.push(body(`Median price per litre runs from ${money(frLo.median)} lei at ${LAB[frLo.retailer]} `
-  + `to ${money(frHi.median)} lei at ${LAB[frHi.retailer]}. The two delivery-only retailers, `
-  + `Freshful and Sezamo, are the most expensive of the full-range shops. METRO holds the widest `
-  + `spread of any retailer: its cheapest tenth is the lowest in the market and its dearest tenth `
-  + `is the highest.`));
+kids.push(body(`Among shelf-price retailers, median price per litre runs from `
+  + `${money(frLo.median)} lei at ${LAB[frLo.retailer]} to ${money(frHi.median)} lei at `
+  + `${LAB[frHi.retailer]}. The two delivery-only retailers, Freshful and Sezamo, are the most `
+  + `expensive. METRO holds the widest spread of any retailer: its cheapest tenth is the lowest in `
+  + `the market and its dearest tenth is the highest. Kaufland, readable only through Bolt Food, `
+  + `sits at ${money(platformFull[0].median)} lei per litre on ${n(platformFull[0].n)} bottles — `
+  + `below every shelf retailer, though a platform price is not a like-for-like comparison.`));
 
 kids.push(head('Who is actually cheapest on the same wine?'));
 kids.push(body([
@@ -592,22 +602,27 @@ kids.push(...exhibit({
 }));
 
 kids.push(...exhibit({
-  title: 'Dry wine sells for roughly twice the price per litre of semi-sweet wine, in every colour.',
+  title: 'Dry wine sells for 1.5 to 2.2 times the price per litre of semi-dry wine, in every colour.',
   subtitle: { label: 'Median price by sweetness, within each colour', unit: 'RON per litre' },
   headers: ['Sweetness', 'White', 'Red', 'Rosé', 'All bottles', 'Share of range'],
-  rows: [
-    ['Sec (dry)', '65.32', '73.32', '58.65', money(R.sweetness.sec.median_ppl), pct(R.sweetness.sec.share, 1)],
-    ['Demisec', '35.97', '33.24', '39.19', money(R.sweetness.demisec.median_ppl), pct(R.sweetness.demisec.share, 1)],
-    ['Demidulce', '27.05', '27.57', '37.99', money(R.sweetness.demidulce.median_ppl), pct(R.sweetness.demidulce.share, 1)],
-    ['Dulce (sweet)', '—', '—', '—', money(R.sweetness.dulce.median_ppl), pct(R.sweetness.dulce.share, 1)],
-  ],
+  rows: [['sec', 'Sec (dry)'], ['demisec', 'Demisec'], ['demidulce', 'Demidulce'],
+         ['dulce', 'Dulce (sweet)']].map(([k, label]) => [
+    label,
+    R.sweetness_by_colour.alb[k] == null ? '—' : money(R.sweetness_by_colour.alb[k]),
+    R.sweetness_by_colour.rosu[k] == null ? '—' : money(R.sweetness_by_colour.rosu[k]),
+    R.sweetness_by_colour.rose[k] == null ? '—' : money(R.sweetness_by_colour.rose[k]),
+    money(R.sweetness[k].median_ppl), pct(R.sweetness[k].share, 1),
+  ]),
   widths: [2200, 1500, 1500, 1500, 1800, 1700],
-  note: '0.75 litre bottles. Dashes mark cells with too few bottles to report reliably.',
+  note: '0.75 litre bottles. Sweet (dulce) wine does not follow the pattern: dessert wines sit '
+    + 'above semi-dry, so the relationship is not simply "sweeter is cheaper". Dashes mark cells '
+    + 'with too few bottles to report reliably.',
 }));
 kids.push(body('This is the strongest single price signal in the data, and it is not a colour '
-  + 'effect: dry wine prices roughly double semi-sweet within white, red, and rosé separately. '
-  + 'Sweetness is also one of the few attributes almost every retailer publishes, which makes it '
-  + 'usable in practice.'));
+  + 'effect: dry wine prices between 1.5 and 2.2 times semi-dry within white, red, and rosé '
+  + 'separately. The exception is sweet wine, which sits above semi-dry because dessert wines are '
+  + 'priced as a speciality rather than as a budget style. Sweetness is also one of the few '
+  + 'attributes almost every retailer publishes, which makes it usable in practice.'));
 
 // ---- origin
 kids.push(head('Where does the wine come from?'));
@@ -681,10 +696,10 @@ const points = [
   [`Buying each wine where it is cheapest costs ${pct(M.basket_hi / M.basket_lo - 1)} less than buying each where it is dearest.`,
     [{ t: `Across the ${M.n} wines matched at two or more retailers, the same basket costs ${n(M.basket_lo)} lei bought cheapest-each against ${n(M.basket_hi)} lei bought dearest-each. The median wine varies ${pct(M.median)}, ${pct(M.over20)} vary by 20 percent or more, and the widest gap is ${pct(M.max)}. ` },
      { t: 'For a buyer this is the size of the prize from comparing before purchase. For a retailer it identifies which of its own lines sit visibly out of line with the market.' }]],
-  ['Dry wine sells for roughly twice the price per litre of semi-sweet wine.',
-    [{ t: `Median price per litre is ${money(R.sweetness.sec.median_ppl)} lei for dry wine, ${money(R.sweetness.demisec.median_ppl)} lei for semi-dry, and ${money(R.sweetness.demidulce.median_ppl)} lei for semi-sweet. ` },
+  ['Dry wine sells for 1.5 to 2.2 times the price per litre of semi-dry wine.',
+    [{ t: `Median price per litre is ${money(R.sweetness.sec.median_ppl)} lei for dry wine, ${money(R.sweetness.demisec.median_ppl)} lei for semi-dry (demisec), and ${money(R.sweetness.demidulce.median_ppl)} lei for semi-sweet (demidulce). ` },
      { t: 'The pattern holds separately for white, red, and rosé, ', b: true },
-     { t: 'so it is a property of sweetness rather than of colour. Sweetness is therefore the most reliable single predictor of price tier available from a product name, and one of the few attributes almost every retailer publishes.' }]],
+     { t: 'so it is a property of sweetness rather than of colour. Sweet dessert wine is the exception, sitting above semi-dry. Sweetness is the most reliable single predictor of price tier available from a product name, and one of the few attributes almost every retailer publishes.' }]],
 ];
 
 points.forEach(([headline, detail], i) => {
