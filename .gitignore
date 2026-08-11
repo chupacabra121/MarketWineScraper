@@ -17,3 +17,7 @@ http_cache/
 .pytest_cache/
 .coverage
 .DS_Store
+
+# node deps for tools/build_issue_brief.js (npm install docx)
+node_modules/
+package-lock.json

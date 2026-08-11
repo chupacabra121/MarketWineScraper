@@ -184,7 +184,7 @@ function exhibit({ title, subtitle, headers, rows, widths, align, note, source }
   }
   out.push(new Paragraph({
     spacing: { before: note ? 60 : 200, after: 400, line: 135, lineRule: LineRuleType.EXACT },
-    children: [t(source || 'Source: MarketWineScraper collection, 10 August 2026',
+    children: [t(source || `Source: MarketWineScraper collection, ${COLLECTED}`,
       { size: 12, color: GREY })],
   }));
   return out;
@@ -231,6 +231,29 @@ const depth = R.depth;
 const full = depth.filter((d) => d.n >= 200 && d.basis === 'Shelf');
 const frLo = full[0], frHi = full[full.length - 1];
 const platformFull = depth.filter((d) => d.n >= 200 && d.basis === 'Platform');
+// Headline figures are derived, never typed. Written-down numbers survive the
+// data they came from: this deck once said "7,513 listings" three re-scrapes
+// after that stopped being true.
+const spreadPct = Math.round((frHi.median / frLo.median - 1) * 100);
+const priceRatio = Math.round(R.most_expensive[0].price / R.cheapest[0].price);
+const roShare = (R.countries.find((c) => c.country === 'Romania') || {}).listings / R.country_known;
+const midBand = R.bands.find((b) => b.band === '25-50 lei');
+const PO = F.penny_overlap;
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+  'nine', 'ten', 'eleven', 'twelve'];
+const word = (v) => WORDS[v] || n(v);
+const maxReach = word(Math.max(...R.brands_by_reach.map((b) => b.retailers)));
+const brandRatio = Math.round(R.brands_premium[0].median_ppl / R.brands_value[0].median_ppl);
+// The dry-vs-semi-dry multiple, measured inside each colour so the claim cannot
+// be an artefact of colour mix.
+const dryMult = Object.values(R.sweetness_by_colour)
+  .filter((c) => c.sec && c.demisec).map((c) => c.sec / c.demisec);
+const dryLo = Math.min(...dryMult).toFixed(1);
+const dryHi = Math.max(...dryMult).toFixed(1);
+// The collection date lives in the data, so no document carries it as a
+// constant that a later run can silently invalidate.
+const COLLECTED = new Date(`${F.collected}T00:00:00Z`).toLocaleDateString('en-GB',
+  { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 // ============================== COVER ====================================
 kids.push(new Paragraph({ spacing: { before: 0, after: 0, line: 2400, lineRule: LineRuleType.EXACT }, children: [] }));
@@ -249,8 +272,8 @@ kids.push(new Paragraph({
   spacing: { before: 340, after: 0, line: 340, lineRule: LineRuleType.EXACT },
   indent: { left: BODY_IN, right: 900 },
   children: [t('The same bottle sells for very different prices depending on the shop. '
-    + 'This brief sets out what 7,513 listings from 13 retail sources show about price gaps, '
-    + 'brands, and grape varieties.', { size: 28 })],
+    + `This brief sets out what ${n(R.n_all)} listings from 13 retail sources show about `
+    + 'price gaps, brands, and grape varieties.', { size: 28 })],
 }));
 // Deep blue band stands in for the cover photograph.
 kids.push(new Paragraph({ spacing: { before: 0, after: 0, line: 700, lineRule: LineRuleType.EXACT }, children: [] }));
@@ -312,14 +335,26 @@ kids.push(bullet([t('Fill the gaps from the product name. ', { bold: true }),
     + '"FETEASCA NEAGRA" count as one variety. Anything that cannot be read reliably is left blank '
     + 'rather than guessed.')]));
 kids.push(bullet([t('Remove what is not wine. ', { bold: true }),
-  t('Wine aisles carry vinegar, corkscrews, and glassware. These are filtered out.')]));
+  t('Wine aisles carry vinegar, corkscrews, and glassware, and also things that look much more '
+    + 'like wine: alcohol-free "sparkling", fruit wine, ready-to-drink cocktails, and fizzy juice '
+    + 'sold to children in a wine bottle. These are removed by name. Because a list of exclusions '
+    + 'can only reject what someone has already seen, every remaining listing is also scored on '
+    + 'independent evidence that it is wine, and the weakest few percent are read by hand before '
+    + 'the figures are published.')]));
+kids.push(bullet([t('Check the price against the retailer. ', { bold: true }),
+  t(`Most sites publish their own price per litre beside the price. It is calculated by the shop `
+    + `from the same two numbers we read, so it is an independent test of whether we read them `
+    + `correctly. ${n(F.unit_price_checked)} listings publish one, and `
+    + `${n(F.unit_price_checked - F.unit_price_conflicts)} of them agree; the `
+    + `${F.unit_price_conflicts} that do not are listings whose own title and per-litre label `
+    + `contradict each other.`)]));
 kids.push(bullet([t('Store price changes only. ', { bold: true }),
   t('A new price is recorded when the price moves, which keeps the history readable across runs.')]));
 
 // ============================== 2. COVERAGE ==============================
 kids.push(head('Which retailers can be covered?'));
 kids.push(body([
-  t('Thirteen sources are live. ', { bold: true }),
+  t('Thirteen sources are live, ', { bold: true }),
   t('covering eleven retailers. Nine read a retailer\'s own website; four read a delivery '
     + 'platform, used where the shop has no usable site of its own. Kaufland and Profi are '
     + 'readable only this way. Together they cover every Romanian retailer with a wine range '
@@ -358,7 +393,9 @@ kids.push(bullet([t('Shelf price ', { bold: true }),
   t('comes from the retailer\'s own site. These compare directly with one another.')]));
 kids.push(bullet([t('Platform price ', { bold: true }),
   t('is what the delivery app charges. For Penny this was checked against the retailer\'s own '
-    + 'website and matched exactly across 27 shared wines. Glovo folds the 0.50 lei bottle deposit '
+    + `website across the ${PO.n} wines both carry: ${PO.same} match to the lei, and the platform `
+    + `is dearer on ${PO.dearer}, by a median of ${pct(PO.median, 1)}, because Penny discounts on `
+    + 'its own site and the platform feed does not always follow. Glovo folds the 0.50 lei deposit '
     + 'into the displayed price, so Glovo rows sit slightly above shelf by construction.')]));
 kids.push(bullet([t('Promotion-only feed ', { bold: true }),
   t('is Kaufland\'s weekly leaflet. It lists discounted wines only and is not that retailer\'s '
@@ -391,7 +428,7 @@ kids.push(...exhibit({
   widths: [1900, 8300],
   align: ['l', 'l'],
   source: 'Source: Checks against retailer websites and Bolt Food (8 cities), Glovo (9,979 '
-    + 'Romanian store pages), Wolt (16,408 Romanian venues), and Bringo, 10 August 2026',
+    + `Romanian store pages), Wolt (16,408 Romanian venues), and Bringo, ${COLLECTED}`,
 }));
 
 kids.push(sub('What closing the gap would take'));
@@ -415,13 +452,14 @@ kids.push(new Paragraph({ children: [new PageBreak()] }));
 kids.push(head('Where does each retailer sit on price?'));
 kids.push(body([
   t('Every retailer starts in the same place. ', { bold: true }),
-  t('The cheapest bottle costs between 9 and 15 lei almost everywhere. What separates retailers is '
+  t(`The cheapest bottle costs between ${F.entry_lo} and ${F.entry_typical_hi} lei at every `
+    + 'retailer but the two delivery-only shops. What separates retailers is '
     + 'how much range sits above that floor (Exhibit 3).'),
 ]));
 
 kids.push(...exhibit({
-  title: 'Median price per litre varies by 71 percent across shelf-price retailers, but entry '
-    + 'prices do not.',
+  title: `Median price per litre varies by ${spreadPct} percent across shelf-price retailers, `
+    + 'but entry prices do not.',
   subtitle: { label: 'Price position by retailer, 0.75 litre bottles', unit: 'RON per litre' },
   headers: ['Retailer', 'Price basis', 'Bottles', 'Cheapest 10%', 'Median', 'Dearest 10%', '200+ lei'],
   rows: depth.map((d) => [
@@ -534,7 +572,8 @@ kids.push(...exhibit({
   note: 'Shelf-price retailers only. Median, cheapest, and dearest are RON per litre.',
 }));
 kids.push(body(`Jidvei carries ${n(R.brands_by_listings[0].listings)} listings across `
-  + `${R.brands_by_listings[0].retailers} retailers; Zarea carries fewer but reaches all seven. `
+  + `${R.brands_by_listings[0].retailers} retailers; Zarea carries fewer but reaches all `
+  + `${maxReach}. `
   + `Listing count measures how many different wines a brand sells. Retailer count measures how `
   + `hard the brand is to avoid.`));
 
@@ -552,7 +591,7 @@ kids.push(...exhibit({
   align: ['l', 'r', 'r', 'l', 'r', 'r'],
   note: 'Brands with at least five listings.',
 }));
-kids.push(body(`The two ends of this table are about 40x apart. Louis Roederer sits at `
+kids.push(body(`The two ends of this table are about ${brandRatio}x apart. Louis Roederer sits at `
   + `${money(R.brands_premium[0].median_ppl)} lei per litre and VINEXPORT at `
   + `${money(R.brands_value[0].median_ppl)} lei. They do not compete with each other.`));
 
@@ -634,15 +673,16 @@ kids.push(...exhibit({
     + 'with too few bottles to report reliably.',
 }));
 kids.push(body('This is the strongest single price signal in the data, and it is not a colour '
-  + 'effect: dry wine prices between 1.5 and 2.2 times semi-dry within white, red, and rosé '
-  + 'separately. The exception is sweet wine, which sits above semi-dry because dessert wines are '
+  + `effect: dry wine prices between ${dryLo} and ${dryHi} times semi-dry within white, red, and `
+  + 'rosé separately. The exception is sweet wine, which sits above semi-dry because dessert wines are '
   + 'priced as a speciality rather than as a budget style. Sweetness is also one of the few '
   + 'attributes almost every retailer publishes, which makes it usable in practice.'));
 
 // ---- origin
 kids.push(head('Where does the wine come from?'));
 kids.push(...exhibit({
-  title: 'Romanian wine accounts for 58 percent of bottles where the retailer states an origin.',
+  title: `Romanian wine accounts for ${pct(roShare)} of bottles where the retailer states an `
+    + 'origin.',
   subtitle: { label: 'Country of origin', unit: 'bottles and RON per litre' },
   headers: ['Country', 'Bottles', 'Median'],
   rows: R.countries.slice(0, 10).map((c) => [c.country, n(c.listings), money(c.median_ppl)]),
@@ -666,7 +706,7 @@ kids.push(body('Dealu Mare has the volume but a mid-market median. Dealurile Olt
 // ---- bands and extremes
 kids.push(head('How is the market distributed across price points?'));
 kids.push(...exhibit({
-  title: 'Nearly half the market sits between 25 and 50 lei a bottle.',
+  title: `${pct(midBand.share)} of the market sits between 25 and 50 lei a bottle.`,
   subtitle: { label: 'Share of range by price band', unit: '% of each retailer\'s bottles' },
   headers: ['Price band', 'Bottles', 'All', 'Auchan', 'Carrefour', 'METRO', 'Freshful', 'Sezamo'],
   rows: R.bands.map((b) => [
@@ -681,7 +721,7 @@ kids.push(body(`Auchan places ${pct(R.bands[1].auchan, 1)} of its range in the 2
   + `${pct(R.bands[4].metro, 1)} above 200 lei, the deepest premium tail of any retailer.`));
 
 kids.push(...exhibit({
-  title: 'The dearest bottle in the market costs 269 times the cheapest.',
+  title: `The dearest bottle in the market costs ${n(priceRatio)} times the cheapest.`,
   subtitle: { label: 'Highest and lowest priced bottles', unit: 'RON per 0.75 litre bottle' },
   headers: ['Most expensive', 'Retailer', 'RON', 'Least expensive', 'Retailer', 'RON'],
   rows: R.most_expensive.slice(0, 8).map((e, i) => {
@@ -736,7 +776,7 @@ points.forEach(([headline, detail], i) => {
 
 // ============================== METHOD ===================================
 kids.push(head('Method and limitations'));
-kids.push(bullet(`All figures come from one complete collection run on 10 August 2026 covering `
+kids.push(bullet(`All figures come from one complete collection run on ${COLLECTED} covering `
   + `${n(F.total)} wine listings from 13 sources. Prices move; this is a snapshot, and the tool `
   + `records a price history on later runs.`));
 kids.push(bullet(`Matching the same wine across retailers requires the brand, the full set of `
