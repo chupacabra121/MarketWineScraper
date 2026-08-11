@@ -6,7 +6,17 @@ python tools/build_workbook.py        # -> exports/romania-wine-market.xlsx
 python tools/build_rankings.py        # -> /tmp/rankings.json
 python tools/build_facts.py           # -> /tmp/brief_facts.json
 npm install docx && node tools/build_issue_brief.js   # -> exports/*-issue-brief.docx
+
+python tools/segment_facts.py                        # -> /tmp/segment_facts.json
+node tools/build_segment_brief.js                    # -> exports/segment-intrare-2l.docx
 ```
+
+The segment brief is a focused cut rather than a market overview: 2 litre wine
+under 10 lei a litre, with Muscatel as the benchmark. It is written in Romanian
+and follows the same house style. Its numbers are generated the same way — the
+threshold, the format and the benchmark are constants at the top of
+`segment_facts.py`, so re-cutting it at a different price or pack size is a
+one-line change rather than a rewrite.
 
 Run them in that order: the brief reads the two JSON files, so every figure in
 the document traces back to one scrape rather than being retyped.
