@@ -36,7 +36,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Iterable, Sequence
 
 from .normalize import NOT_A_GRAPE, fold, parse_colour, parse_grapes, parse_sweetness
@@ -169,7 +169,40 @@ def _tokens(text: str) -> list[str]:
     return _TOKEN_RE.findall(without_measures)
 
 
-def brand_lexicon(rows: Sequence[dict]) -> list[str]:
+class BrandLexicon:
+    """The brand vocabulary, indexed for lookup by token run.
+
+    Scanning a list of 600 brand names with a regex for every one of 6,750
+    listings is 4 million pattern compilations and dominated the whole run.
+    Brands are matched as runs of whole tokens, so indexing them by that run
+    turns the scan into a handful of dict lookups.
+    """
+
+    def __init__(self, brands: Iterable[str]):
+        self.brands = sorted(set(brands), key=lambda b: (-len(b.split()), -len(b)))
+        self._by_tokens = {tuple(b.split()): b for b in self.brands}
+        self._longest = max((len(t) for t in self._by_tokens), default=0)
+
+    def __contains__(self, brand: str) -> bool:
+        return brand in self._by_tokens.get(tuple(brand.split()), "")
+
+    def __iter__(self):
+        return iter(self.brands)
+
+    def __len__(self) -> int:
+        return len(self.brands)
+
+    def find(self, tokens: Sequence[str]) -> str:
+        """The longest brand appearing as a run of tokens in a title."""
+        for size in range(min(self._longest, len(tokens)), 0, -1):
+            for start in range(len(tokens) - size + 1):
+                brand = self._by_tokens.get(tuple(tokens[start:start + size]))
+                if brand:
+                    return brand
+        return ""
+
+
+def brand_lexicon(rows: Sequence[dict]) -> BrandLexicon:
     """Brand names, learned from the retailers that publish them.
 
     Six of thirteen sources leave the brand field empty — Kaufland, Penny,
@@ -187,21 +220,10 @@ def brand_lexicon(rows: Sequence[dict]) -> list[str]:
         if len(cleaned) >= 3:
             counts[cleaned] += 1
     # A brand seen once is as likely to be a mis-filled field as a real brand.
-    lexicon = [b for b, c in counts.items() if c >= 2]
-    # Longest first, so "Beciul Domnesc" is found before "Beciul".
-    return sorted(lexicon, key=lambda b: (-len(b.split()), -len(b)))
+    return BrandLexicon(b for b, c in counts.items() if c >= 2)
 
 
-def _brand_from_title(title_tokens: Sequence[str], lexicon: Iterable[str]) -> str:
-    """Longest lexicon brand appearing as a run of tokens in the title."""
-    joined = " ".join(title_tokens)
-    for brand in lexicon:
-        if re.search(rf"(?:^| ){re.escape(brand)}(?:$| )", joined):
-            return brand
-    return ""
-
-
-def signature(row: dict, lexicon: Sequence[str] = ()) -> Signature:
+def signature(row: dict, lexicon: BrandLexicon | None = None) -> Signature:
     """Reduce one listing to what identifies the wine it sells."""
     expanded = expand(row.get("name") or "")
     tokens = [t for t in _tokens(expanded) if t not in NOISE and len(t) > 1]
@@ -210,8 +232,16 @@ def signature(row: dict, lexicon: Sequence[str] = ()) -> Signature:
     stated = (row.get("brand") or "").strip()
     if len(stated) >= 3:
         brand = " ".join(t for t in _tokens(expand(stated)) if t not in BRAND_NOISE)
+    from_title = lexicon.find(tokens) if lexicon else ""
     if not brand:
-        brand = _brand_from_title(tokens, lexicon)
+        brand = from_title
+    elif from_title and len(from_title.split()) > len(brand.split()) \
+            and set(brand.split()) <= set(from_title.split()):
+        # Auchan files "Pelin Carpatin" under the brand "Pelin", which left
+        # "carpatin" looking like the name of a particular wine and split it
+        # from the same bottle at METRO and Penny. Where the title carries a
+        # longer known brand that contains the stated one, the longer wins.
+        brand = from_title
 
     # Grapes come from the retailer's own field when it has one, and from the
     # title otherwise. Blend descriptors ("Cuvée", "Cupaj") are not varieties.
@@ -274,7 +304,53 @@ class WineGroup:
 
 def _block(sig: Signature) -> tuple:
     """What must match exactly before two listings can be considered."""
-    return (sig.brand, sig.anchor, sig.volume_l, sig.sparkling)
+    return (sig.brand, sig.volume_l, sig.sparkling)
+
+
+#: Two sets of listings priced further apart than this are not folded together
+#: by the circumstantial rules below. Across wines carried by several retailers
+#: the median gap is 14% and almost none exceed 2.3x, so a 2.5x gap is evidence
+#: against a merge the text could not settle on its own. It is deliberately
+#: *only* applied to those two heuristic steps: price never decides identity
+#: where the titles are clear, or a sale would rewrite the key.
+MAX_MERGE_SPREAD = 2.5
+
+
+def _prices_compatible(left: Sequence, right: Sequence) -> bool:
+    prices = [r["price"] for r, _ in list(left) + list(right) if r.get("price")]
+    if len(prices) < 2 or min(prices) <= 0:
+        return True
+    return max(prices) / min(prices) <= MAX_MERGE_SPREAD
+
+
+def _consolidate_anchors(by_anchor: dict) -> dict:
+    """Fold listings with no name of their own into the block's only named one.
+
+    Auchan sells "Pelin Carpatin, Pelin alb demisec de Urlati"; METRO and Penny
+    sell the same bottle as "Pelin Carpatin Vin Alb". "Urlați" is where the wine
+    comes from, not which wine it is, and no rule can tell provenance from a
+    range name by looking at the word.
+
+    Who sells it can. A shop lists a given wine once, so if the named and
+    unnamed listings come from entirely different shops they are one wine
+    written two ways. If any shop appears on both sides — Auchan sells both
+    plain Purcari Cabernet Sauvignon and "Roșu de Purcari" — they are two wines.
+    The rule only applies when the block holds exactly one named group, since
+    with two there is nothing to say which an unnamed listing belongs to.
+    """
+    unnamed = by_anchor.get(frozenset())
+    named = {a: m for a, m in by_anchor.items() if a}
+    if unnamed is None or len(named) != 1:
+        return by_anchor
+    (anchor, members), = named.items()
+    if {r["retailer"] for r, _ in members} & {r["retailer"] for r, _ in unnamed}:
+        return by_anchor
+    if not _prices_compatible(members, unnamed):
+        # Selgros' "LOPEZ DE HARO CRIANZA" at 40 lei and METRO's plain "LOPEZ DE
+        # HARO" at 139 pass every textual test; the prices are the only thing
+        # saying they are different wines.
+        return by_anchor
+    return {anchor: members + unnamed}
 
 
 #: A stated vintage this many years back marks a cellar bottle rather than
@@ -304,6 +380,43 @@ def _variant(sig: Signature, recent_year: int | None = None) -> tuple:
     """
     return (sig.colour, sig.sweetness, sig.grapes,
             _cellar_vintage(sig, recent_year))
+
+
+def _specificity(variant: tuple) -> int:
+    return sum(1 for v in variant if v is not None)
+
+
+def _resolve(variant: tuple, known: set) -> tuple:
+    """Read an under-described listing as the one wine it can be.
+
+    A listing is resolved against the most specific variant it is compatible
+    with. The earlier rule only accepted variants where *every* attribute was
+    stated, which almost never happens — most wines name no grape at all — so
+    METRO's "Vin Alb Demisec" and Penny's "vin alb" stayed apart as two wines.
+
+    If two equally specific readings survive, the data does not say which, and
+    the listing keeps its own identity rather than being guessed into one.
+    """
+    own = _specificity(variant)
+    candidates = [k for k in known
+                  if k != variant and _specificity(k) > own and _compatible(variant, k)]
+    if not candidates:
+        return variant
+    # Keep only the maximal readings: a variant that another candidate refines
+    # is not itself a reading. Sorting by specificity means every variant that
+    # could refine a candidate has already been seen, and lets the scan stop the
+    # moment a second maximal reading turns up — which is the expensive case and
+    # also the one that resolves to nothing.
+    candidates.sort(key=_specificity, reverse=True)
+    maximal = []
+    for i, c in enumerate(candidates):
+        spec = _specificity(c)
+        if any(_specificity(o) > spec and _compatible(c, o) for o in candidates[:i]):
+            continue
+        maximal.append(c)
+        if len(maximal) > 1:
+            return variant
+    return maximal[0]
 
 
 def _compatible(partial: tuple, full: tuple) -> bool:
@@ -337,7 +450,13 @@ def _slug(sig: Signature, variant: tuple, range_name: str | None) -> str:
     if sig.volume_l:
         parts.append(f"{sig.volume_l:g}l")
     text = "-".join(re.sub(r"[^a-z0-9]+", "-", p.lower()).strip("-") for p in parts if p)
-    text = re.sub(r"-+", "-", text).strip("-") or "wine"
+    # The anchor and the range name overlap when a title carries both ("Pelin
+    # ... de Urlati" gives anchor "urlati" and range "rose-urlati"), which reads
+    # as "urlati-rose-urlati-rose". Repeats are cosmetic, but the key is meant
+    # to be read.
+    seen: set[str] = set()
+    text = "-".join(w for w in re.sub(r"-+", "-", text).strip("-").split("-")
+                    if w and not (w in seen or seen.add(w))) or "wine"
     digest = hashlib.sha1(
         repr((sig.brand, sorted(sig.anchor), sig.volume_l, sig.sparkling,
               colour, sweetness, sorted(grapes or ()), vintage, range_name)).encode()
@@ -377,6 +496,9 @@ def _consolidate_range(members: list) -> list:
     (range_name, named), = by_range.items()
     if {r["retailer"] for r in named} & {r["retailer"] for r in unnamed}:
         return [(range_name, named), (None, unnamed)]
+    if not _prices_compatible([(r, None) for r in named],
+                              [(r, None) for r in unnamed]):
+        return [(range_name, named), (None, unnamed)]
     return [(range_name, named + unnamed)]
 
 
@@ -400,31 +522,41 @@ def group_wines(rows: Sequence[dict]) -> list[WineGroup]:
         blocks[_block(sig)].append((row, sig))
 
     groups: dict[str, WineGroup] = {}
-    for _, members in blocks.items():
-        # Variants that are fully described are the candidates an
-        # under-described listing can be resolved against. A cellar vintage is
-        # never resolved into, only split on, so it is excluded from the test.
-        fully_stated = {_variant(sig, recent_year) for _, sig in members
-                        if all(v is not None for v in _variant(sig, recent_year)[:3])}
-        by_variant: dict[tuple, list] = defaultdict(list)
-        for row, sig in members:
-            variant = _variant(sig, recent_year)
-            if variant not in fully_stated:
-                candidates = [f for f in fully_stated
-                              if _compatible(variant[:3], f[:3]) and f[3] == variant[3]]
-                # Exactly one reading, or none at all: anything else is a guess.
-                if len(candidates) == 1:
-                    variant = candidates[0]
-            by_variant[variant].append((row, sig))
+    for (brand, _volume, _sparkling), block_members in blocks.items():
+        by_anchor: dict[frozenset, list] = defaultdict(list)
+        for row, sig in block_members:
+            by_anchor[sig.anchor].append((row, sig))
 
-        for variant, variant_members in by_variant.items():
-            for range_name, rows_in in _consolidate_range(variant_members):
-                sig = next(s for r, s in variant_members if r in rows_in)
-                key = _slug(sig, variant, range_name)
-                group = groups.get(key)
-                if group is None:
-                    group = groups[key] = WineGroup(key=key, signature=sig)
-                group.rows.extend(rows_in)
+        # With no brand, the anchor is the only identity a listing has, so it is
+        # never folded away: two unbranded wines sharing a colour and a bottle
+        # size are not the same wine.
+        anchors = (_consolidate_anchors(dict(by_anchor)) if brand else dict(by_anchor))
+        for anchor, members in anchors.items():
+            # A cellar vintage splits rather than resolves, so listings are only
+            # read against others of the same vintage.
+            by_vintage: dict[int | None, set] = defaultdict(set)
+            for _, sig in members:
+                variant = _variant(sig, recent_year)
+                by_vintage[variant[3]].add(variant)
+            # Resolution depends only on the variant, so it is worked out once
+            # per distinct variant rather than once per listing. Without this a
+            # 150-listing brand costs 150 times more than it needs to.
+            resolution = {v: _resolve(v, siblings)
+                          for siblings in by_vintage.values() for v in siblings}
+
+            by_variant: dict[tuple, list] = defaultdict(list)
+            for row, sig in members:
+                by_variant[resolution[_variant(sig, recent_year)]].append((row, sig))
+
+            for variant, variant_members in by_variant.items():
+                for range_name, rows_in in _consolidate_range(variant_members):
+                    sig = next(s for r, s in variant_members if r in rows_in)
+                    sig = replace(sig, anchor=anchor)
+                    key = _slug(sig, variant, range_name)
+                    group = groups.get(key)
+                    if group is None:
+                        group = groups[key] = WineGroup(key=key, signature=sig)
+                    group.rows.extend(rows_in)
     return sorted(groups.values(), key=lambda g: (-len(g.retailers), g.key))
 
 

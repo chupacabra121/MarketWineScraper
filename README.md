@@ -243,10 +243,22 @@ Three rules exist because the naive version got them wrong:
   Purcari Chardonnay and an unlabelled one are the same wine on the same shelf,
   and treating the year as identity there would split seven retailers into eight.
 
-This groups **763 wines carried by two or more retailers**, against 226 for the
+Two more rules cover what the text cannot settle on its own. Auchan sells
+"Pelin Carpatin ... de Urlati" and METRO sells the same bottle as "Pelin
+Carpatin"; Urlați is where the wine comes from, not which wine it is, and no
+rule can tell provenance from a range name by looking at the word. Who sells it
+can: a shop lists a given wine once, so listings that differ only in a naming
+detail are one wine when they come from entirely different shops, and two wines
+when any shop appears on both sides. Where even that is inconclusive the prices
+decide — Selgros' "LOPEZ DE HARO CRIANZA" at 40 lei and METRO's plain "LOPEZ DE
+HARO" at 139 pass every textual test, and only the gap says they differ. Price
+is used **only** for these two circumstantial steps, never where the titles are
+clear, or a sale would rewrite the key.
+
+This groups **868 wines carried by two or more retailers**, against 226 for the
 exact-wording matcher it replaced. It is not infallible: identity is inferred
 from text, so `winescraper check` reports any group whose prices span more than
-2.5x, which is the shape of a wrong merge. On the current data that is five
+2.5x, which is the shape of a wrong merge. On the current data that is four
 groups, and one of them is a genuine Auchan duplicate listed at both 34.99 and
 109.99 lei.
 

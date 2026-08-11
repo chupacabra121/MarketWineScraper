@@ -26,7 +26,7 @@ verification here, and an unverified formula is worse than a checked number.
 The workbook's `Price by Wine` sheet and the brief's cross-retailer figures both
 come from `winescraper.identity`, which reconstructs a `wine_key` so the same
 wine is one row however each shop writes its name. That replaced an exact-wording
-matcher: 763 wines carried by two or more retailers, against 226 before, and the
+matcher: 868 wines carried by two or more retailers, against 226 before, and the
 Purcari Chardonnay that nine shops sell is now one row rather than nine.
 
 All three scripts apply the same cleaning the scraper does — blend descriptors

@@ -294,3 +294,101 @@ def test_a_weak_word_alone_never_becomes_an_identity():
     rows = [listing("Vin Premium 0.75L", "a", colour="rosu", sweetness="sec"),
             listing("Vin Premium 0.75L", "b", colour="rosu", sweetness="sec")]
     assert group_wines(rows)[0].signature.anchor == frozenset()
+
+
+# ------------------------------------------------- gaps the retailers leave
+
+def test_a_shorter_brand_field_is_extended_from_the_title():
+    """Auchan files "Pelin Carpatin" under the brand "Pelin", which left
+    "carpatin" looking like the name of one particular wine."""
+    rows = [
+        listing("PELIN CARPATIN Vin Alb Demisec SGR 0,75 L", "metro",
+                brand="PELIN CARPATIN", colour="alb", sweetness="demisec"),
+        listing("PELIN CARPATIN ALB DEMISEC 0,75", "selgros",
+                brand="PELIN CARPATIN", colour="alb", sweetness="demisec"),
+        listing("Pelin Carpatin, Pelin alb demisec de Urlati, 0.75 l", "auchan",
+                brand="Pelin", colour="alb", sweetness="demisec"),
+    ]
+    assert signature(rows[2], brand_lexicon(rows)).brand == "pelin carpatin"
+
+
+def test_provenance_does_not_split_a_wine_from_itself():
+    """Auchan and Supeco say "de Urlati"; METRO and Penny do not. Urlați is
+    where the wine comes from, not which wine it is — and no rule can tell that
+    from the word, so it is settled by nobody selling it both ways."""
+    rows = [
+        listing("Pelin Carpatin, Pelin alb demisec de Urlati, 0.75 l", "auchan",
+                brand="Pelin", price=14.19, colour="alb", sweetness="demisec"),
+        listing("PELIN CARPATIN Vin Alb SGR 0,75 L", "metro", brand="PELIN CARPATIN",
+                price=15.25, colour="alb", sweetness="demisec"),
+        # A brand has to be seen twice to enter the lexicon, so Selgros is here
+        # for the same reason it is in the real data: it publishes the brand.
+        listing("PELIN CARPATIN ALB DEMISEC 0,75", "selgros", brand="PELIN CARPATIN",
+                price=15.99, colour="alb", sweetness="demisec"),
+        listing("Pelin Carpatin vin alb 750 ml", "penny_bolt", price=16.85,
+                colour="alb"),
+    ]
+    assert same_wine(rows), keys_for(rows)
+
+
+def test_the_three_colours_of_one_range_stay_apart():
+    """Auchan sells Pelin Carpatin 1.5 L as three products at the same price.
+    They are three wines, not one."""
+    rows = [
+        listing("Pelin Carpatin, Pelin alb demisec de Urlati, 1.5 l", "auchan",
+                brand="Pelin", price=29.49, volume_l=1.5, colour="alb",
+                sweetness="demisec"),
+        listing("Pelin Carpatin, Pelin rose demisec de Urlati, 1.5 l", "auchan",
+                brand="Pelin", price=29.49, volume_l=1.5, colour="rose",
+                sweetness="demisec"),
+        listing("Pelin Carpatin, Pelin rosu demisec de Urlati, 1.5 l", "auchan",
+                brand="Pelin", price=29.49, volume_l=1.5, colour="rosu",
+                sweetness="demisec"),
+    ]
+    assert len({g.key for g in group_wines(rows)}) == 3, keys_for(rows)
+
+
+def test_resolution_does_not_require_every_attribute_to_be_stated():
+    """Almost no wine names a grape, so demanding a fully described variant
+    resolved nothing: METRO's "Vin Alb Demisec" and Penny's "vin alb" stayed
+    apart as two wines."""
+    rows = [
+        listing("PELIN CARPATIN Vin Alb Demisec", "metro", brand="Pelin Carpatin",
+                colour="alb", sweetness="demisec"),
+        listing("Pelin Carpatin vin alb 750 ml", "penny_bolt", brand="Pelin Carpatin",
+                colour="alb"),
+    ]
+    assert same_wine(rows), keys_for(rows)
+
+
+def test_prices_veto_a_merge_the_text_could_not_settle():
+    """Selgros' "LOPEZ DE HARO CRIANZA" at 40 lei and METRO's plain "LOPEZ DE
+    HARO" at 139 pass every textual test. The prices are the only evidence that
+    they are different wines."""
+    rows = [
+        listing("LOPEZ DE HARO CRIANZA ROSU SEC 0,75", "selgros",
+                brand="Lopez de Haro", price=39.77, colour="rosu", sweetness="sec"),
+        listing("LOPEZ DE HARO Vin Rosu Sec SGR 0,75 L", "metro",
+                brand="Lopez de Haro", price=139.0, colour="rosu", sweetness="sec"),
+    ]
+    assert not same_wine(rows), keys_for(rows)
+
+
+def test_a_normal_price_gap_still_merges():
+    """The price veto applies only to merges the text left ambiguous, and only
+    at a gap no real cross-retailer spread reaches."""
+    rows = [
+        listing("PELIN CARPATIN ALB DEMISEC de Urlati 0,75", "selgros",
+                brand="Pelin Carpatin", price=14.19, colour="alb", sweetness="demisec"),
+        listing("PELIN CARPATIN Vin Alb SGR 0,75 L", "metro", brand="Pelin Carpatin",
+                price=18.99, colour="alb", sweetness="demisec"),
+    ]
+    assert same_wine(rows), keys_for(rows)
+
+
+def test_the_key_does_not_repeat_a_word():
+    rows = [listing("Pelin rose de Urlati 0.75L", "mega_image", brand="Pelin Carpatin",
+                    colour="rose", sweetness="demisec")]
+    key = group_wines(rows)[0].key
+    words = key.rsplit("-", 1)[0].split("-")
+    assert len(words) == len(set(words)), key
