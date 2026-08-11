@@ -72,6 +72,13 @@ def build_parser() -> argparse.ArgumentParser:
     stats = sub.add_parser("stats", parents=[common], help="row counts per retailer")
     stats.add_argument("--db", type=Path, default=DEFAULT_DB)
 
+    checks = sub.add_parser("check", parents=[common],
+                            help="look for implausible prices and non-wine rows")
+    checks.add_argument("--db", type=Path, default=DEFAULT_DB)
+    checks.add_argument("--site", dest="site")
+    checks.add_argument("--show", type=int, default=15,
+                        help="rows to print per finding type")
+
     return parser
 
 
@@ -175,6 +182,35 @@ def cmd_stats(args) -> int:
     return 0
 
 
+def cmd_check(args) -> int:
+    """Report rows that look wrong, so a run can be inspected before publishing."""
+    from .validate import check, summarise
+
+    with Store(args.db) as store:
+        rows = [dict(r) for r in store.latest(args.site)]
+    if not rows:
+        print("database is empty")
+        return 0
+
+    findings = check(rows)
+    counts = summarise(findings)
+    print(f"checked {len(rows):,} rows")
+    if not findings:
+        print("no problems found")
+        return 0
+
+    print(f"{len(findings)} finding(s):")
+    for kind, count in counts.items():
+        print(f"  {kind:<16} {count}")
+    for kind in counts:
+        examples = [f for f in findings if f.kind == kind][:args.show]
+        print(f"\n{kind}:")
+        for f in examples:
+            print(f"  {f.retailer:<14} {f.name[:56]:<56} {f.detail}")
+    # Findings are advisory: a real 2,541-lei bottle looks like an outlier too.
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -185,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         "export": cmd_export,
         "history": cmd_history,
         "stats": cmd_stats,
+        "check": cmd_check,
     }
     return handlers[args.command](args)
 

@@ -60,23 +60,38 @@ class Adapter:
         return product
 
     def keep_wines(self, products: Iterable[WineProduct]) -> list[WineProduct]:
-        """Drop non-wine items and de-duplicate by external id.
+        """Drop non-wine items and unpriced listings, and de-duplicate by id.
 
-        Wine categories reliably contain corkscrews, glasses and vinegar, and
-        some search endpoints match "vin" inside unrelated words.
+        Wine aisles reliably contain corkscrews, glasses and vinegar, plus a
+        long tail of wine-adjacent drinks — alcohol-free "sparkling", ready-to-
+        drink spritzes, vermouth, sparkling tea and Wine Chocolate — none of
+        which belong in a wine price series.
+
+        Listings with no price are dropped too. They are almost always sold out
+        (Auchan's API returns Price=0 with AvailableQuantity=0), and a row with
+        no price cannot contribute to a price dataset.
         """
         seen: set[str] = set()
         kept: list[WineProduct] = []
+        dropped_not_wine = dropped_unpriced = 0
         for product in products:
             if product.external_id in seen:
                 continue
             if not looks_like_wine(product.name, product.category_path):
-                log.debug("[%s] filtered non-wine: %s", self.key, product.name)
+                dropped_not_wine += 1
+                log.debug("[%s] not wine: %s", self.key, product.name)
+                continue
+            if product.price is None:
+                dropped_unpriced += 1
+                log.debug("[%s] no price: %s", self.key, product.name)
                 continue
             seen.add(product.external_id)
             kept.append(product)
             if self.limit and len(kept) >= self.limit:
                 break
+        if dropped_not_wine or dropped_unpriced:
+            log.info("[%s] dropped %d non-wine and %d unpriced listings",
+                     self.key, dropped_not_wine, dropped_unpriced)
         return kept
 
 

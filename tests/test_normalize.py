@@ -200,3 +200,77 @@ def test_enrich_drops_blend_descriptors_from_supplied_varieties():
                           grape_varieties=["Cuvée"])
     enrich(product)
     assert "Cuvée" not in product.grape_varieties
+
+
+@pytest.mark.parametrize("title", [
+    # Wine-based drinks that are not wine
+    "Bautura aromatizata pe baza de vin rosu Wine Chocolate, 0.75 l",
+    "Bautura carbogazoasa cu aroma de capsuni Robby Bubble, 0.75 l",
+    "VINARTE Gluhwein Bautura pe Baza de Vin Aromat 3 L",
+    "WINE CHOCOLATE DARK 14% 0.75L",
+    # Ready-to-drink cocktails
+    "Spumant Cocktail to Go Zarea Hugo, 0.75L",
+    "Chandon Garden Spritz 0.75L",
+    "Il Spritz Mionetto 0.75L",
+    "ZAREA SEX ON THE BEACH 7%ALC750ML COCKT.",
+    # Alcohol-free, including children's "champagne"
+    "Sampanie copii fara alcool Vitapress Fairies, 0.75 L",
+    "Spumant Zarea Free 0.0% 0.75L",
+    "Freixenet alb, fara alcool, 0.75L",
+    "Bambino Party Vin spumant fara alcool cu aroma de Piersica",
+    # Sparkling tea sold in the wine aisle
+    "Ceai spumant organic alb sec, 0% alc, 750ml",
+    # Vermouth and aperitifs
+    "MARTINI BIANCO VERMUT 15% 0.75L",
+    "CINZANO ROSSO VERMUT 14.4% 0.75L",
+    # Bundles price a pack, not a bottle
+    "Pachet vin alb demidulce Murfatlar Zestrea, (3+1) x 0.75 l",
+])
+def test_wine_adjacent_products_are_excluded(title):
+    """Every string here was a real listing collected from a wine category."""
+    assert looks_like_wine(title) is False
+
+
+@pytest.mark.parametrize("title", [
+    "Vin rosu sec Feteasca Neagra, 0.75 l",
+    "COTNARI Vin Feteasca Alba Demidulce SGR 0,75 L",
+    "Prosecco alb sec Mionetto Treviso, 0.75 l",
+    "Vin spumant alb brut Freixenet Cava Cordon Negro, 0.75 l",
+    # Fortified wines are wine and must survive the filter
+    "Vin roșu dulce Porto Ruby, 19.5%, 750ml",
+    "Vin alb Sherry Medium Golden, 15%, 750ml",
+    "Vin rosu dulce Cantine Florio Vecchioflorio Marsala Superiore",
+    # An ordinary ABV must not trip the alcohol-free rule
+    "Vin alb sec Crama Girboiu, 12.0% alcool, 0.75 l",
+])
+def test_real_wine_survives_the_filter(title):
+    assert looks_like_wine(title) is True
+
+
+@pytest.mark.parametrize("title,expected", [
+    # A single bottle in a gift box is still one bottle.
+    ("DOM PERIGNON Sampanie Gift Box SGR 0,75 L", True),
+    ("Vin alb dulce Ice Wine Riesling Gift Box, 7%, 375ml", True),
+    ("Louis Roederer Sampanie brut rose vintage gift box", True),
+    # A bundle prices several bottles, so per-bottle figures would be wrong.
+    ("Pachet vin alb demidulce Murfatlar Zestrea, (3+1) x 0.75 l", False),
+    ("Vin spumant 6 x 0,187 L", False),
+    ("VIN ALB SEC BAX 6 STICLE", False),
+])
+def test_gift_boxes_are_kept_but_bundles_are_not(title, expected):
+    assert looks_like_wine(title) is expected
+
+
+@pytest.mark.parametrize("title,expected", [
+    # Kaufland titles carry an internal code that reads like a volume. The real
+    # bottle size is the last one in the name.
+    ("SERAFIM MERLOT 12L SEC 13.5% 0.75L", 0.75),
+    ("ECLIPSE MERLOT 19L SEC 14.5% 0.75L", 0.75),
+    ("AMBRA SARBA 14L DLC 13.5% 0.375L", 0.375),
+    ("LATOUR GR ARDECHE CHARD 10L 0.75L", 0.75),
+    # A single volume is unaffected.
+    ("COTNARI ET.GALBENA VIN ALB DMD 1.5L", 1.5),
+    ("Vin rosu demisec, Budureasca BIB 2L Cabernet sauvignon, 2 l", 2.0),
+])
+def test_last_volume_wins_over_an_internal_code(title, expected):
+    assert parse_volume_l(title) == expected

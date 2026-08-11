@@ -65,13 +65,43 @@ _SPARKLING_WORDS = [
     "frizzante", "cremant", "lambrusco", "asti", "petnat", "pet nat", "brut",
 ]
 
-# Words that mean the listing is not actually a bottle of wine.
-_NOT_WINE = [
-    "otet", "vinete", "vineta", "vinificatie", "vitrina", "pahar", "pahare",
-    "tirbuson", "dop de", "racitor", "suport sticl", "carafa", "decantor",
-    "sos de vin", "must ", "vin fiert praf", "aroma de vin", "gem ",
-    "vinars", "vinarium accesor", "frigider", "vin de gatit", "otet balsamic",
+# Listings that sit in the wine aisle but are not wine. Each pattern was taken
+# from a real listing found in the collected data; the comment names it.
+_NOT_WINE_PATTERNS = [
+    # Wine-based drinks that are not wine: "Bautura aromatizata pe baza de vin
+    # rosu Wine Chocolate", "Bautura carbogazoasa cu aroma de capsuni Robby Bubble"
+    r"bautura (aromatizata|carbogazoasa|racoritoare|spirtoasa)",
+    r"pe baza de vin",
+    r"wine chocolate",
+    r"\bgluhwein\b|\bvin fiert\b|\bmulled\b",
+    # Ready-to-drink cocktails: "Spumant Cocktail to Go Zarea Hugo", "Il Spritz
+    # Mionetto", "Chandon Garden Spritz"
+    r"\bcocteil\b|\bcocktail\b|\bspritz\b|\bhugo\b|\bsangria\b|\bmojito\b",
+    r"sex on the beach|\baperol\b",
+    # Flavoured fizz sold beside wine: "Bambino Party ... aroma de Piersica"
+    r"aroma de (piersic|capsun|ananas|cocos|zmeur|visin|mar\b|fruct|lamai|portocal)",
+    # Sparkling tea, sold in the wine aisle at Freshful
+    r"\bceai\b|\bsparkling tea\b",
+    # Vermouth and aperitifs: "MARTINI BIANCO VERMUT", "CINZANO ROSSO VERMUT"
+    r"\bvermut\b|\bvermouth\b|\bcampari\b",
+    # Alcohol-free "wine": not wine, and often literally grape juice
+    r"fara alcool|dealcool|non-?alcohol|alcohol-?free",
+    # A zero-alcohol claim, but not the "0" inside an ordinary "12.0% alcool":
+    # the lookbehind stops the pattern matching a decimal place.
+    r"(?<![\d.,])0(?:[.,]0)?\s*%(\s*alc)?",
+    r"sampanie copii|\bfairies\b",
+    # Multipacks and gift sets price a bundle, not a bottle
+    # "Pachet vin alb ... (3+1) x 0.75 l" prices a bundle. A single bottle in a
+    # gift box is still one bottle, so gift packaging alone is not excluded.
+    r"^pachet\b|\bbax\b|\b\d+\s*x\s*\d|\(\d\+\d\)",
+    # Food and accessories that mention wine
+    r"\botet\b|\bvinete\b|\bvineta\b|\bvinificatie\b",
+    r"\bcovrigi\b|\bbiscuit|\bpraline\b|\bbomboane\b|\bgem\b|sos de vin",
+    r"\bpahar|\btirbuson\b|\bdecantor\b|\bcarafa\b|\bracitor\b|suport sticl",
+    r"\bvitrina\b|\bfrigider\b|vin de gatit|vin fiert praf",
+    r"\bvinars\b|\bvinarium accesor",
 ]
+_NOT_WINE_RE = re.compile("|".join(_NOT_WINE_PATTERNS))
 
 # Matched as whole words. Listing them explicitly rather than as a "vin"
 # prefix keeps "vintage" (as in "Pepsi carbo vintage") out of the results.
@@ -156,9 +186,11 @@ def parse_volume_l(text: str) -> float | None:
             litres = amount
         # Ignore nonsense like a "50 l" barrel or a "0 l" typo in a wine title.
         if 0.04 <= litres <= 20:
-            # Prefer the largest plausible match; "6x0.75 l" should read as 0.75
-            # per bottle, and the pack maths is left to the caller.
-            best = litres if best is None else max(best, litres)
+            # Take the LAST plausible match, not the largest. Kaufland titles
+            # carry an internal code that reads like a volume — "SERAFIM MERLOT
+            # 12L SEC 13.5% 0.75L" is a 0.75 L bottle, not a 12 L one — and
+            # retailers put the real bottle size at the end of the name.
+            best = litres
     if best is not None:
         return round(best, 4)
 
@@ -266,7 +298,7 @@ def looks_like_wine(text: str, category_path: str | None = None) -> bool:
     endpoints match "vin" inside "vinete" (aubergines).
     """
     folded = fold(text)
-    if any(bad in folded for bad in _NOT_WINE):
+    if _NOT_WINE_RE.search(folded):
         return False
     haystack = folded + " " + fold(category_path or "")
     return any(re.search(rf"\b{re.escape(w)}\b", haystack) for w in _WINE_WORDS)
