@@ -224,6 +224,7 @@ function panel(title, lines) {
 // ---- derived -------------------------------------------------------------
 const M = F.matches;
 const W = F.wins.metro;
+const PS = R.promo_sensitivity;
 const depth = R.depth;
 // The price-span claim compares like with like: shelf basis only. Platform
 // retailers appear in the exhibit but are excluded from this comparison.
@@ -452,22 +453,30 @@ kids.push(body([
 kids.push(...exhibit({
   title: 'METRO holds the lowest price on four out of five wines it shares with a competitor.',
   subtitle: { label: 'Price outcome on wines carried by two or more retailers', unit: 'number and %' },
-  headers: ['Retailer', 'Shared wines', 'Times cheapest', 'Win rate', 'Times dearest', 'Loss rate'],
+  headers: ['Retailer', 'Shared wines', 'Times cheapest', 'Win rate, as paid',
+            'Win rate, pre-discount', 'Times dearest'],
   rows: Object.entries(F.wins).sort((a, b) => b[1].winrate - a[1].winrate).map(([k, v]) => [
-    LAB[k], n(v.n), n(v.win), pct(v.winrate), n(v.lose), pct(v.loserate),
+    LAB[k], n(v.n), n(v.win), pct(v.winrate),
+    R.wins_regular[k] ? pct(R.wins_regular[k].winrate) : '—', n(v.lose),
   ]),
-  widths: [2200, 1700, 1700, 1500, 1700, 1400],
+  widths: [2000, 1550, 1600, 1750, 1900, 1400],
   note: 'Retailers appearing in at least ten matched wines. Win rate is the share of a retailer\'s '
-    + 'matched wines on which it is the cheapest of those carrying it. It is not a statement about '
-    + 'the retailer\'s whole range.',
+    + 'matched wines on which it is the cheapest of those carrying it, not a statement about its '
+    + 'whole range. "As paid" uses the price a shopper pays including any active discount; '
+    + '"pre-discount" reverses every promotion to the retailer\'s standing price.',
 }));
 
-kids.push(pullQuote(`METRO is cheapest on ${W.win} of ${W.n} shared wines, and ran no promotions `
-  + `at all during the period measured.`));
+kids.push(pullQuote(`METRO is cheapest on ${W.win} of ${W.n} shared wines — and on `
+  + `${pct(R.wins_regular.metro.winrate)} once competitors' discounts are reversed.`));
 
 kids.push(body(`Selgros, the other cash-and-carry, wins only ${pct(F.wins.selgros.winrate)} and is `
   + `dearest on ${pct(F.wins.selgros.loserate)}. The two wholesale formats price very differently, `
-  + `so they should not be treated as one channel.`));
+  + `so they should not be treated as one channel. The pre-discount column matters here: Auchan's `
+  + `win rate falls from ${pct(F.wins.auchan.winrate)} to `
+  + `${pct(R.wins_regular.auchan.winrate)} once promotions are reversed, so much of its price `
+  + `competitiveness is promotional. Selgros moves the other way, from `
+  + `${pct(F.wins.selgros.winrate)} to ${pct(R.wins_regular.selgros.winrate)}. METRO, which ran no `
+  + `promotions at all, rises to ${pct(R.wins_regular.metro.winrate)}.`));
 
 kids.push(...exhibit({
   title: 'On some identical wines the dearest retailer charges more than double the cheapest.',
@@ -480,8 +489,14 @@ kids.push(...exhibit({
   widths: [3600, 1150, 1600, 1150, 1600, 1100],
   align: ['l', 'r', 'l', 'r', 'l', 'r'],
   note: 'Same brand, same product wording, and same bottle size at both retailers. These are not '
-    + 'different vintages or pack sizes.',
+    + 'different vintages or pack sizes. Prices are what a shopper pays, discounts included.',
 }));
+kids.push(body(`Part of this gap is promotional rather than structural. Reversing every active `
+  + `discount narrows the share of matched wines differing by 20 percent or more from `
+  + `${pct(PS.paid_over20)} to ${pct(PS.regular_over20)}, and the basket saving from `
+  + `${pct(PS.paid_basket)} to ${pct(PS.regular_basket)}. The median gap barely moves `
+  + `(${pct(PS.paid_median)} to ${pct(PS.regular_median)}), so the typical difference between `
+  + `retailers is a standing one; the widest gaps are the ones a sale creates.`));
 
 kids.push(...exhibit({
   title: 'Only a handful of labels are carried by four or more retailers.',
@@ -692,10 +707,10 @@ const points = [
   [`METRO holds the lowest price on ${pct(W.winrate)} of the wines it shares with a competitor.`,
     [{ t: `Of the ${W.n} wines where METRO and at least one other retailer stock the identical bottle, METRO is cheapest on ${W.win} and dearest on ${W.lose}. ` },
      { t: 'The advantage is structural, not promotional: ', b: true },
-     { t: `METRO ran no discounts at all on its ${n(F.by_retailer.metro)} wines during the period measured, and still undercut retailers whose prices did include active discounts. The limitation is that many METRO wines carry a six-bottle minimum order, so the advantage applies to case buying rather than to a single bottle.` }]],
+     { t: `METRO ran no discounts at all on its ${n(F.by_retailer.metro)} wines during the period measured, and still undercut retailers whose prices did include active discounts. Reversing those discounts raises METRO's win rate to ${pct(R.wins_regular.metro.winrate)}. The limitation is that many METRO wines carry a six-bottle minimum order, so the advantage applies to case buying rather than to a single bottle.` }]],
   [`Buying each wine where it is cheapest costs ${pct(M.basket_hi / M.basket_lo - 1)} less than buying each where it is dearest.`,
     [{ t: `Across the ${M.n} wines matched at two or more retailers, the same basket costs ${n(M.basket_lo)} lei bought cheapest-each against ${n(M.basket_hi)} lei bought dearest-each. The median wine varies ${pct(M.median)}, ${pct(M.over20)} vary by 20 percent or more, and the widest gap is ${pct(M.max)}. ` },
-     { t: 'For a buyer this is the size of the prize from comparing before purchase. For a retailer it identifies which of its own lines sit visibly out of line with the market.' }]],
+     { t: `On standing prices, with every discount reversed, the saving is ${pct(PS.regular_basket)} — so most of it is structural rather than a matter of catching a sale. For a buyer this is the size of the prize from comparing before purchase. For a retailer it identifies which of its own lines sit visibly out of line with the market.` }]],
   ['Dry wine sells for 1.5 to 2.2 times the price per litre of semi-dry wine.',
     [{ t: `Median price per litre is ${money(R.sweetness.sec.median_ppl)} lei for dry wine, ${money(R.sweetness.demisec.median_ppl)} lei for semi-dry (demisec), and ${money(R.sweetness.demidulce.median_ppl)} lei for semi-sweet (demidulce). ` },
      { t: 'The pattern holds separately for white, red, and rosé, ', b: true },
@@ -731,6 +746,14 @@ kids.push(bullet(`Matching the same wine across retailers requires the brand, th
   + `grouped genuinely different wines together and produced false gaps above 130 percent.`));
 kids.push(bullet('Price comparisons use 0.75 litre bottles only. Shelf and platform prices are '
   + 'labelled throughout and should not be pooled.'));
+kids.push(bullet(`Recorded prices are what a shopper pays on the day, including any active `
+  + `discount. The pre-discount price is stored separately, so every comparison can be re-run on `
+  + `standing prices; where that changes a finding it is reported above. `
+  + `${n(PS.promo_rows)} of ${n(F.total)} listings carried a discount, at a median depth of `
+  + `${pct(PS.median_discount)}. Promotional intensity is very uneven — Selgros `
+  + `${pct(R.promo_by_retailer.selgros.promo / R.promo_by_retailer.selgros.total)} of its range, `
+  + `Auchan ${pct(R.promo_by_retailer.auchan.promo / R.promo_by_retailer.auchan.total)}, METRO `
+  + `none at all — so a retailer with a sale running looks cheaper than its standing prices merit.`));
 kids.push(bullet(`A blank attribute means the retailer did not publish it, not that the value is `
   + `zero. Alcohol content is available for ${pct(F.abv_n / F.total)} of listings and vintage for `
   + `about 7 percent, with some vintages read wrongly from brand names such as "Sarica Niculitel `

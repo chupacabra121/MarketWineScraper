@@ -214,6 +214,49 @@ vt = Counter(r.get("vintage") for r in rows if r.get("vintage"))
 out["vintages"] = dict(sorted(vt.items(), key=lambda kv: -kv[1])[:10])
 out["vintage_known"] = sum(vt.values())
 
+# ------------------------------------------------ PROMO SENSITIVITY
+# `price` is what a shopper pays on the day, discount included. Re-running the
+# head-to-head on pre-discount prices shows how much of each retailer's standing
+# is promotional rather than structural.
+regular = [dict(r) for r in rows]
+for r in regular:
+    if r.get("list_price"):
+        r["price"] = r["list_price"]
+
+def _wins(match_rows):
+    ap, wi, lo = Counter(), Counter(), Counter()
+    for m in match_rows:
+        for ret in m["retailers"]:
+            ap[ret] += 1
+        wi[m["cheap"]] += 1
+        lo[m["dear"]] += 1
+    return {k: {"n": ap[k], "win": wi[k], "winrate": round(wi[k] / ap[k], 3),
+                "lose": lo[k], "loserate": round(lo[k] / ap[k], 3)}
+            for k in ap if ap[k] >= 10}
+
+reg_matches = bx.find_matches(regular)
+reg_sp = sorted(m["spread"] for m in reg_matches)
+out["wins_regular"] = _wins(reg_matches)
+out["promo_sensitivity"] = {
+    "paid_median": round(statistics.median(sorted(m["spread"] for m in matches)), 4),
+    "regular_median": round(statistics.median(reg_sp), 4),
+    "paid_over20": round(sum(1 for x in sorted(m["spread"] for m in matches) if x >= .2)
+                         / len(matches), 3),
+    "regular_over20": round(sum(1 for x in reg_sp if x >= .2) / len(reg_sp), 3),
+    "paid_basket": round(sum(m["hi"] for m in matches) / sum(m["lo"] for m in matches) - 1, 3),
+    "regular_basket": round(sum(m["hi"] for m in reg_matches)
+                            / sum(m["lo"] for m in reg_matches) - 1, 3),
+    "promo_rows": sum(1 for r in rows if r.get("on_promotion")),
+    "median_discount": round(statistics.median(
+        [1 - r["price"] / r["list_price"] for r in rows
+         if r.get("on_promotion") and r.get("price") and r.get("list_price")]), 3),
+}
+out["promo_by_retailer"] = {
+    k: {"promo": sum(1 for r in rows if r["retailer"] == k and r.get("on_promotion")),
+        "total": sum(1 for r in rows if r["retailer"] == k)}
+    for k in {r["retailer"] for r in rows}
+}
+
 json.dump(out, open("/tmp/rankings.json", "w"), ensure_ascii=False, indent=1)
 
 # ------------------------------------------------------------------ print
