@@ -5,9 +5,13 @@ import json
 import re
 import os
 import sqlite3
+import sys
 import statistics
 import unicodedata
 from collections import Counter, defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from winescraper import pricing
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -123,8 +127,12 @@ def _is_grape(value):
 HEADERS = [
     ("Retailer", 18), ("Source", 11), ("Price Basis", 12), ("Product ID", 16),
     ("Product Name", 52), ("Wine Key", 46), ("Brand", 20), ("Producer", 20),
-    ("Price (RON)", 11), ("List Price (RON)", 14), ("Discount %", 10),
-    ("Volume (L)", 10), ("Price per Litre (RON)", 17), ("Price Band", 13),
+    # The regular price leads, because that is the series an analysis of
+    # shelf prices wants; the discount sits beside it rather than inside it.
+    ("List Price (RON)", 14), ("Discount Price (RON)", 16),
+    ("List Price per Litre (RON)", 20), ("Discount %", 10),
+    ("Price Paid (RON)", 14), ("Price Paid per Litre (RON)", 21),
+    ("Volume (L)", 10), ("Price Band", 13),
     ("Colour", 9), ("Sweetness", 11), ("Sparkling", 10),
     ("ABV %", 8), ("Vintage", 8), ("Country", 16), ("Romanian?", 10),
     ("Region", 20), ("Grape Varieties", 34),
@@ -151,11 +159,13 @@ def build_data_sheet(wb, rows):
             LABELS.get(r["retailer"], r["retailer"]), source, basis,
             r.get("external_id"), r.get("name"), r.get("wine_key"),
             r.get("brand"), r.get("producer"),
-            r.get("price"), r.get("list_price"),
-            None,                     # Discount % — formula
+            pricing.regular(r), pricing.discounted(r),
+            pricing.per_litre(pricing.regular(r), r.get("volume_l")),
+            pricing.discount_share(r),
+            pricing.paid(r),
+            pricing.per_litre(pricing.paid(r), r.get("volume_l")),
             r.get("volume_l"),
-            None,                     # Price per Litre — formula
-            None,                     # Price Band — formula
+            None,                     # Price Band — filled below
             r.get("colour"), r.get("sweetness"),
             "Yes" if r.get("sparkling") else "No",
             r.get("abv"), r.get("vintage"), canon_country(r.get("country")),
@@ -176,14 +186,11 @@ def build_data_sheet(wb, rows):
     # matters. Each derived value is reproducible from the columns beside it.
     # Column letters are looked up by header name. They were hardcoded, and a
     # single inserted column silently wrote every derived value one column off.
-    discount, per_litre = col_of("Discount %"), col_of("Price per Litre (RON)")
     band, romanian = col_of("Price Band"), col_of("Romanian?")
     for i, r in enumerate(rows, start=2):
-        price, lst, vol = r.get("price"), r.get("list_price"), r.get("volume_l")
-        if price and lst and lst > price:
-            ws[f"{discount}{i}"] = (lst - price) / lst
-        if price and vol:
-            ws[f"{per_litre}{i}"] = round(price / vol, 2)
+        # Banded on the regular price, so a wine does not move band for the
+        # week it happens to be on offer.
+        price = pricing.regular(r) or pricing.paid(r)
         if price:
             ws[f"{band}{i}"] = ("1. Under 25" if price < 25 else "2. 25-50" if price < 50
                                 else "3. 50-100" if price < 100 else "4. 100-200" if price < 200
@@ -203,13 +210,22 @@ def build_data_sheet(wb, rows):
         c.fill = header_fill
         c.alignment = Alignment(vertical="center", wrap_text=True)
     ws.row_dimensions[1].height = 30
-    ws.freeze_panes = "E2"
+    # Keeps the retailer and the product name in view while scrolling prices.
+    ws.freeze_panes = "F2"
 
-    # Number formats only on the numeric columns; the body font comes from the
-    # workbook's Normal style so we never touch 210k cells individually.
-    formats = {"H": '#,##0.00', "I": '#,##0.00', "L": '#,##0.00',
-               "J": '0.0%', "K": '0.000', "Q": '0.0'}
-    for col, fmt in formats.items():
+    # Number formats only on the numeric columns, and looked up by header name
+    # for the same reason the derived values are: one inserted column used to
+    # shift every format silently. The body font comes from the workbook's
+    # Normal style so we never touch 200k cells individually.
+    money = '#,##0.00'
+    formats = {
+        "List Price (RON)": money, "Discount Price (RON)": money,
+        "List Price per Litre (RON)": money, "Price Paid (RON)": money,
+        "Price Paid per Litre (RON)": money,
+        "Discount %": '0.0%', "Volume (L)": '0.000', "ABV %": '0.0',
+    }
+    for header, fmt in formats.items():
+        col = col_of(header)
         for i in range(2, last + 1):
             ws[f"{col}{i}"].number_format = fmt
     return ws, last
@@ -268,9 +284,20 @@ def build_readme(wb, rows, retailers, n_rows):
         ("HOW TO USE", ""),
         ("Data", "The fact table — one row per wine per retailer, one row per source. Formatted "
                  "as an Excel Table named 'tblWines': click any cell and Insert > PivotTable to "
-                 "analyse. Derived columns (Discount %, Price per Litre, Price Band, Romanian?) "
-                 "are pre-computed so the file opens instantly at 7.5k rows; re-run the scraper "
-                 "to refresh them."),
+                 "analyse. Derived columns are pre-computed so the file opens instantly at 6.75k "
+                 "rows; re-run the scraper to refresh them."),
+        ("  Which price?", "'List Price' is the regular, undiscounted price — the series to "
+                           "analyse. Only 5.1% of listings are on promotion; on the other 94.9% "
+                           "the price on the page IS the regular price, so this column is the "
+                           "shelf price for those. 'Discount Price' is filled only where a "
+                           "promotion is running, and 'Price Paid' is what a shopper hands over "
+                           "today either way. 16 listings are flagged as discounted by a retailer "
+                           "that publishes no former price — Kaufland's leaflet is promotions "
+                           "only — so those have no List Price rather than being given their "
+                           "discount price."),
+        ("  Price per litre", "The comparable figure across bottle sizes, given for both the list "
+                              "price and the price paid. Price Band uses the list price, so a "
+                              "wine does not change band for the week it is on offer."),
         ("Retailer Summary", "Count, price range and mix per retailer, computed from the Data "
                              "sheet at build time."),
         ("Price Ladder", "Like-for-like comparison on the standard 0.75 L bottle — the only "
@@ -601,13 +628,18 @@ def build_wine_matrix(wb, rows, retailers):
     """
     ws = wb.create_sheet("Price by Wine", 2)
     title_block(ws, "Price by Wine and Retailer",
-                "One row per wine. Blank means that retailer does not carry it.",
+                "Regular (undiscounted) prices. One row per wine; blank means that "
+                "retailer does not carry it.",
                 width=7 + len(retailers))
 
+    # Compared on the regular price, like the Data sheet: a wine that happens to
+    # be on offer at one shop this week would otherwise look structurally cheaper
+    # there. Listings with no regular price (a retailer discounting without
+    # saying what from) cannot take part.
     by_key = defaultdict(list)
     for r in rows:
-        if r.get("wine_key") and r.get("price"):
-            by_key[r["wine_key"]].append(r)
+        if r.get("wine_key") and pricing.regular(r):
+            by_key[r["wine_key"]].append(dict(r, price=pricing.regular(r)))
 
     labels = [LABELS.get(k, k) for k in retailers]
     cols = ["Wine Key", "Example Name", "Brand", "Volume (L)", "Retailers",
