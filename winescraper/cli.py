@@ -74,6 +74,16 @@ def build_parser() -> argparse.ArgumentParser:
     stats = sub.add_parser("stats", parents=[common], help="row counts per retailer")
     stats.add_argument("--db", type=Path, default=DEFAULT_DB)
 
+    wines = sub.add_parser("wines", parents=[common],
+                           help="the same wine across retailers, by wine key")
+    wines.add_argument("--db", type=Path, default=DEFAULT_DB)
+    wines.add_argument("--key", help="show every listing under one wine key")
+    wines.add_argument("--min-retailers", type=int, default=2,
+                       help="only wines carried by at least this many (default 2)")
+    wines.add_argument("--limit", type=int, default=25)
+    wines.add_argument("--reassign", action="store_true",
+                       help="recompute the keys before showing them")
+
     checks = sub.add_parser("check", parents=[common],
                             help="look for implausible prices and non-wine rows")
     checks.add_argument("--db", type=Path, default=DEFAULT_DB)
@@ -146,6 +156,14 @@ def cmd_run(args) -> int:
     if degraded:
         print(f"{degraded} retailer(s) completed with recoverable failures — "
               "the catalogue may be incomplete")
+
+    # Identity depends on the whole catalogue, so it is recomputed once the run
+    # is complete rather than per product as rows arrive.
+    if not args.dry_run:
+        with Store(args.db) as store:
+            counts = store.assign_wine_keys()
+        print(f"{counts['wines']:,} distinct wines, "
+              f"{counts['shared']:,} carried by more than one retailer")
 
     # Validating here rather than leaving it to a separate command is the point:
     # a check nobody remembers to run catches nothing.
@@ -232,6 +250,41 @@ def _report_findings(db: Path, site: str | None = None, show: int = 15) -> int:
     return len(findings)
 
 
+def cmd_wines(args) -> int:
+    """Show wines rather than listings: one row per wine, priced by each shop."""
+    with Store(args.db) as store:
+        if args.reassign:
+            counts = store.assign_wine_keys()
+            print(f"{counts['listings']:,} listings → {counts['wines']:,} wines, "
+                  f"{counts['shared']:,} carried by more than one retailer\n")
+
+        if args.key:
+            rows = store.wine(args.key)
+            if not rows:
+                print(f"no listings under '{args.key}'", file=sys.stderr)
+                return 1
+            prices = [r["price"] for r in rows if r["price"]]
+            print(f"{args.key}\n{len(rows)} listing(s), "
+                  f"{prices[0]:.2f}–{prices[-1]:.2f} RON "
+                  f"({prices[-1] / prices[0] - 1:+.0%})\n")
+            for row in rows:
+                promo = " promo" if row["on_promotion"] else ""
+                print(f"  {row['retailer']:<14} {row['price']:>8.2f}{promo:<6} {row['name'][:58]}")
+            return 0
+
+        groups = store.wine_groups(args.min_retailers)
+        if not groups:
+            print("no wine keys stored yet — run with --reassign")
+            return 0
+        print(f"{len(groups):,} wines carried by {args.min_retailers}+ retailers\n")
+        print(f"  {'shops':>5} {'low':>8} {'high':>8} {'gap':>6}  wine")
+        for row in groups[:args.limit]:
+            gap = (row["high"] / row["low"] - 1) if row["low"] else 0
+            print(f"  {row['retailers']:>5} {row['low']:>8.2f} {row['high']:>8.2f} "
+                  f"{gap:>5.0%}  {row['wine_key']}")
+        return 0
+
+
 def cmd_check(args) -> int:
     """Report rows that look wrong, so a run can be inspected before publishing."""
     # Findings are advisory: a real 2,541-lei bottle looks like an outlier too,
@@ -251,6 +304,7 @@ def main(argv: list[str] | None = None) -> int:
         "history": cmd_history,
         "stats": cmd_stats,
         "check": cmd_check,
+        "wines": cmd_wines,
     }
     return handlers[args.command](args)
 

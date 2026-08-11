@@ -28,7 +28,7 @@ _PRICE_RE = re.compile(r"(\d{1,3}(?:[.\s]\d{3})*|\d+)(?:[.,](\d{1,2}))?\s*(?:lei
 # The trailing (?:sgr?|s)? absorbs Kaufland's deposit marker, which is glued to
 # the unit: "...13.5% 0.75LSG". Without it the real bottle size does not match
 # at all and the title's leading internal code ("12L") wins instead.
-_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(ml|cl|litri|litru|l)(?:sgr?|s)?\b", re.I)
+_ML_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(ml|cl|litri|litru|lit|l)(?:sgr?|s)?\b", re.I)
 _ABV_RE = re.compile(r"(\d{1,2}(?:[.,]\d{1,2})?)\s*%\s*(?:vol|alc)?", re.I)
 _VINTAGE_RE = re.compile(r"\b(19[5-9]\d|20[0-4]\d)\b")
 
@@ -240,7 +240,9 @@ def parse_volume_l(text: str) -> float | None:
     # No unit anywhere: accept a lone decimal in bottle range. Percentages are
     # excluded by the upper bound (13,5 is not a bottle size) and by requiring
     # that the number is not immediately followed by a '%'.
-    for match in re.finditer(r"(?<![\d.,%])(\d{1,2}[.,]\d{1,2})(?!\s*%)(?![\d.,])", folded):
+    # Three decimals are common in cash & carry titles: Selgros writes the
+    # 187 ml miniature as "0,187" and Profi writes "0,750 Lit".
+    for match in re.finditer(r"(?<![\d.,%])(\d{1,2}[.,]\d{1,3})(?!\s*%)(?![\d.,])", folded):
         try:
             candidate = float(match.group(1).replace(",", "."))
         except ValueError:

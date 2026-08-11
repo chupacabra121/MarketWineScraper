@@ -23,6 +23,12 @@ comparison are all computed on each build.
 6,750 rows is 27k formula cells, which could not be recalculated for
 verification here, and an unverified formula is worse than a checked number.
 
+The workbook's `Price by Wine` sheet and the brief's cross-retailer figures both
+come from `winescraper.identity`, which reconstructs a `wine_key` so the same
+wine is one row however each shop writes its name. That replaced an exact-wording
+matcher: 763 wines carried by two or more retailers, against 226 before, and the
+Purcari Chardonnay that nine shops sell is now one row rather than nine.
+
 All three scripts apply the same cleaning the scraper does — blend descriptors
 ("Cuvée", "Cupaj") are not grape varieties, a year inside a brand name is not a
 vintage, and a placeholder price of 9,999 lei is dropped — so a report built

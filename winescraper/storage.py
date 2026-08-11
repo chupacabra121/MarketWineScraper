@@ -69,6 +69,15 @@ CREATE INDEX IF NOT EXISTS idx_products_retailer ON products(retailer);
 CREATE INDEX IF NOT EXISTS idx_obs_product ON price_observations(product_id, observed_at);
 """
 
+# Added after the first databases were built, so it ships as a migration rather
+# than in SCHEMA: an existing file must gain the column without being rebuilt.
+_MIGRATIONS = [
+    ("products", "wine_key", "ALTER TABLE products ADD COLUMN wine_key TEXT"),
+]
+_MIGRATION_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_products_wine_key ON products(wine_key)",
+)
+
 _PRODUCT_FIELDS = (
     "name", "brand", "producer", "url", "image_url", "volume_l", "abv", "vintage",
     "colour", "sweetness", "sparkling", "country", "region", "grape_varieties",
@@ -91,7 +100,18 @@ class Store:
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.executescript(SCHEMA)
+        self._migrate()
         self.conn.commit()
+
+    def _migrate(self) -> None:
+        """Add columns introduced after a database was first written."""
+        for table, column, statement in _MIGRATIONS:
+            existing = {r["name"] for r in
+                        self.conn.execute(f"PRAGMA table_info({table})")}
+            if column not in existing:
+                self.conn.execute(statement)
+        for statement in _MIGRATION_INDEXES:
+            self.conn.execute(statement)
 
     def __enter__(self) -> "Store":
         return self
@@ -258,6 +278,104 @@ class Store:
             "SELECT retailer, COUNT(*) AS products, MAX(last_seen) AS last_seen "
             "FROM products GROUP BY retailer ORDER BY retailer"
         ).fetchall()
+
+    def assign_wine_keys(self) -> dict[str, int]:
+        """Work out which listings are the same wine, and record it.
+
+        The key depends on the whole catalogue — the brand vocabulary is learned
+        from the retailers that publish one, and an unstated attribute is
+        resolved against the other listings of the same wine — so this runs over
+        every row at once rather than per product.
+        """
+        from .identity import group_wines
+
+        rows = [dict(r) for r in self.latest()]
+        groups = group_wines(rows)
+        updates = [(g.key, r["retailer"], str(r["external_id"]))
+                   for g in groups for r in g.rows]
+        self.conn.executemany(
+            "UPDATE products SET wine_key = ? WHERE retailer = ? AND external_id = ?",
+            updates)
+        self.conn.commit()
+        return {"listings": len(updates), "wines": len(groups),
+                "shared": sum(1 for g in groups if len(g.retailers) > 1)}
+
+    def wine_groups(self, min_retailers: int = 1) -> list[sqlite3.Row]:
+        """Stored wines, widest distribution first."""
+        return self.conn.execute(
+            """
+            SELECT p.wine_key,
+                   COUNT(*) AS listings,
+                   COUNT(DISTINCT p.retailer) AS retailers,
+                   MIN(o.price) AS low, MAX(o.price) AS high,
+                   MAX(p.name) AS example
+            FROM products p
+            JOIN price_observations o ON o.id = (
+                SELECT id FROM price_observations
+                WHERE product_id = p.id ORDER BY observed_at DESC, id DESC LIMIT 1
+            )
+            WHERE p.wine_key IS NOT NULL
+            GROUP BY p.wine_key
+            HAVING retailers >= ?
+            ORDER BY retailers DESC, listings DESC, p.wine_key
+            """, (min_retailers,)).fetchall()
+
+    def wine(self, wine_key: str) -> list[sqlite3.Row]:
+        """Every listing recorded under one wine key."""
+        return self.conn.execute(
+            """
+            SELECT p.retailer, p.name, p.wine_key, p.volume_l, p.url,
+                   o.price, o.on_promotion, o.observed_at
+            FROM products p
+            JOIN price_observations o ON o.id = (
+                SELECT id FROM price_observations
+                WHERE product_id = p.id ORDER BY observed_at DESC, id DESC LIMIT 1
+            )
+            WHERE p.wine_key = ?
+            ORDER BY o.price
+            """, (wine_key,)).fetchall()
+
+    #: Fields ``reenrich`` may fill in. Read from the title, so they can only
+    #: ever be a fallback for what the retailer did not publish.
+    _DERIVED_FIELDS = ("volume_l", "abv", "vintage", "colour", "sweetness")
+
+    def reenrich(self) -> int:
+        """Fill gaps in parsed fields from the stored product names.
+
+        A fix to the normaliser is worth nothing to rows already collected, and
+        a re-scrape is a poor way to apply one. This replays ``enrich`` over what
+        is stored instead.
+
+        It only writes where the column is NULL. Overwriting would be worse than
+        doing nothing: METRO publishes colour and sweetness in a characteristics
+        table and Auchan publishes grape varieties, none of which appear in the
+        title, so re-deriving everything from the name silently replaces what a
+        retailer stated with what could be guessed from its product name.
+        """
+        from .models import WineProduct
+        from .normalize import enrich
+
+        changed = 0
+        for row in self.conn.execute("SELECT * FROM products").fetchall():
+            gaps = [f for f in self._DERIVED_FIELDS if row[f] is None]
+            if not gaps:
+                continue
+            product = WineProduct(
+                retailer=row["retailer"], external_id=row["external_id"],
+                name=row["name"], brand=row["brand"],
+                category_path=row["category_path"],
+            )
+            enrich(product)
+            filled = {f: getattr(product, f) for f in gaps
+                      if getattr(product, f) is not None}
+            if not filled:
+                continue
+            assignments = ", ".join(f"{f} = ?" for f in filled)
+            self.conn.execute(f"UPDATE products SET {assignments} WHERE id = ?",
+                              (*filled.values(), row["id"]))
+            changed += 1
+        self.conn.commit()
+        return changed
 
     def retailer_drift(self, threshold: float = 0.10) -> list[dict]:
         """Retailers whose row count moved sharply against their previous run.

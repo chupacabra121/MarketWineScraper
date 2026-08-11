@@ -23,6 +23,9 @@ MIN_PLAUSIBLE_PPL = 5.0
 MAX_PLAUSIBLE_PPL = 4000.0
 # Flag a row whose price per litre is this many times its retailer's median.
 OUTLIER_FACTOR = 12.0
+# The widest believable gap between two retailers selling the same wine. Above
+# it, the listings were probably not the same wine to begin with.
+MAX_WINE_SPREAD = 2.5
 # Tolerance on the unit-price cross-check below. Sites round their own per-litre
 # figure, so a couple of percent is normal and 5% is comfortably outside it.
 UNIT_PRICE_TOLERANCE = 0.05
@@ -119,6 +122,28 @@ def check(rows: list[dict]) -> list[Finding]:
                         "unit price disagrees", r["retailer"], name,
                         f"{price} over {volume} L is {ppl:.2f} RON/L, but the "
                         f"site publishes {unit_price:.2f} RON/L"))
+
+    # -- wines whose listings disagree too much to be one wine ---------
+    # Identity is reconstructed from titles, so it can be wrong. When it is, the
+    # prices say so: across 763 wines carried by more than one retailer, the
+    # median gap is 14% and almost none exceed 2.3x. A cluster spanning more
+    # than that is either a bad merge or a listing worth looking at — the Auchan
+    # Chardonnay listed twice, at 34.99 and 109.99, is both.
+    by_key: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        if r.get("wine_key") and r.get("price"):
+            by_key[r["wine_key"]].append(r)
+    for wine_key, listings in by_key.items():
+        prices = [r["price"] for r in listings]
+        if len(prices) < 2 or min(prices) <= 0:
+            continue
+        if max(prices) / min(prices) > MAX_WINE_SPREAD:
+            cheap = min(listings, key=lambda r: r["price"])
+            dear = max(listings, key=lambda r: r["price"])
+            findings.append(Finding(
+                "wine spread", f"{cheap['retailer']}/{dear['retailer']}", wine_key,
+                f"{cheap['price']:.2f} to {dear['price']:.2f} "
+                f"({max(prices) / min(prices):.1f}x) — grouped as one wine"))
 
     # -- per-retailer outliers ----------------------------------------
     by_retailer: dict[str, list[tuple[float, dict]]] = defaultdict(list)

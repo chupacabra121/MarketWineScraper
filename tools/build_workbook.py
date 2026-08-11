@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import os
 import sqlite3
 import statistics
 import unicodedata
@@ -114,7 +115,7 @@ def _is_grape(value):
 
 HEADERS = [
     ("Retailer", 18), ("Source", 11), ("Price Basis", 12), ("Product ID", 16),
-    ("Product Name", 52), ("Brand", 20), ("Producer", 20),
+    ("Product Name", 52), ("Wine Key", 46), ("Brand", 20), ("Producer", 20),
     ("Price (RON)", 11), ("List Price (RON)", 14), ("Discount %", 10),
     ("Volume (L)", 10), ("Price per Litre (RON)", 17), ("Price Band", 13),
     ("Colour", 9), ("Sweetness", 11), ("Sparkling", 10),
@@ -123,6 +124,11 @@ HEADERS = [
     ("On Promotion", 12), ("In Stock", 9), ("Category Path", 34),
     ("Store / Location", 26), ("Scraped At", 20), ("URL", 46),
 ]
+
+
+def col_of(header: str) -> str:
+    """The Data sheet column letter for a header, by name rather than position."""
+    return get_column_letter([h for h, _ in HEADERS].index(header) + 1)
 
 
 def build_data_sheet(wb, rows):
@@ -136,7 +142,8 @@ def build_data_sheet(wb, rows):
         grapes = r.get("grape_varieties") or ""
         ws.append([
             LABELS.get(r["retailer"], r["retailer"]), source, basis,
-            r.get("external_id"), r.get("name"), r.get("brand"), r.get("producer"),
+            r.get("external_id"), r.get("name"), r.get("wine_key"),
+            r.get("brand"), r.get("producer"),
             r.get("price"), r.get("list_price"),
             None,                     # Discount % — formula
             r.get("volume_l"),
@@ -160,19 +167,23 @@ def build_data_sheet(wb, rows):
     # time and so cannot be verified before shipping. The insight sheets keep
     # live formulas over this table, which is where recalculation actually
     # matters. Each derived value is reproducible from the columns beside it.
+    # Column letters are looked up by header name. They were hardcoded, and a
+    # single inserted column silently wrote every derived value one column off.
+    discount, per_litre = col_of("Discount %"), col_of("Price per Litre (RON)")
+    band, romanian = col_of("Price Band"), col_of("Romanian?")
     for i, r in enumerate(rows, start=2):
         price, lst, vol = r.get("price"), r.get("list_price"), r.get("volume_l")
         if price and lst and lst > price:
-            ws[f"J{i}"] = (lst - price) / lst
+            ws[f"{discount}{i}"] = (lst - price) / lst
         if price and vol:
-            ws[f"L{i}"] = round(price / vol, 2)
+            ws[f"{per_litre}{i}"] = round(price / vol, 2)
         if price:
-            ws[f"M{i}"] = ("1. Under 25" if price < 25 else "2. 25-50" if price < 50
-                           else "3. 50-100" if price < 100 else "4. 100-200" if price < 200
-                           else "5. 200+")
+            ws[f"{band}{i}"] = ("1. Under 25" if price < 25 else "2. 25-50" if price < 50
+                                else "3. 50-100" if price < 100 else "4. 100-200" if price < 200
+                                else "5. 200+")
         country = canon_country(r.get("country"))
         if country:
-            ws[f"T{i}"] = "Yes" if country == "Romania" else "No"
+            ws[f"{romanian}{i}"] = "Yes" if country == "Romania" else "No"
 
     table = Table(displayName="tblWines", ref=f"A1:{get_column_letter(len(HEADERS))}{last}")
     table.tableStyleInfo = TableStyleInfo(
@@ -501,28 +512,26 @@ def _brandkey(r):
 
 
 def find_matches(rows):
-    """Same wine at several retailers: identical brand, distinctive words and bottle size.
+    """Same wine at several retailers, using the stored wine identity.
 
-    Looser matching (brand + grape only) was tried first and produced obvious
-    false positives — Mega Image and Freshful strip the producer out of product
-    titles, so three different 'Vin rosu sec Negru de Dragasani 0.75L' listings
-    collapsed into one. Anchoring on the brand field as well as the full word set
-    removes those at the cost of recall.
+    This used to require an identical brand field, an identical set of
+    distinctive words and the same bottle size. That was precise and very
+    incomplete: it grouped 226 wines, none of them the Purcari Chardonnay that
+    nine retailers carry, because no two of them word it the same way.
+
+    ``winescraper.identity`` reconstructs the identity instead — expanding cash
+    & carry abbreviations, reading brands that six sources never publish, and
+    resolving attributes a retailer left out. It finds three times as many.
     """
-    groups = defaultdict(list)
-    for r in rows:
-        if not r.get("price") or not r.get("volume_l"):
-            continue
-        brand = _brandkey(r)
-        keys = _keyset(r.get("name") or "")
-        if len(brand) < 3 or len(keys) < 3:
-            continue
-        groups[(brand, keys, round(r["volume_l"], 3))].append(r)
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from winescraper.identity import group_wines
 
+    priced = [r for r in rows if r.get("price") and r.get("volume_l")]
     matches = []
-    for _, items in groups.items():
+    for group in group_wines(priced):
         best = {}
-        for r in items:
+        for r in group.rows:
             ret = r["retailer"]
             if ret not in best or r["price"] < best[ret]["price"]:
                 best[ret] = r
@@ -531,6 +540,7 @@ def find_matches(rows):
         prices = {k: v["price"] for k, v in best.items()}
         lo, hi = min(prices.values()), max(prices.values())
         matches.append({
+            "key": group.key,
             "name": max((v["name"] for v in best.values()), key=len),
             "brand": next((v.get("brand") for v in best.values() if v.get("brand")), ""),
             "vol": round(next(iter(best.values()))["volume_l"], 3),
@@ -546,33 +556,92 @@ def find_matches(rows):
 def build_spread(wb, matches):
     ws = wb.create_sheet("Cross-Retailer Spread")
     title_block(ws, "Same Wine, Different Retailers",
-                "Identical brand, product wording and bottle size. Every match is listed so it "
-                "can be audited.", width=9)
-    cols = ["Wine", "Brand", "Volume (L)", "Retailers", "Cheapest (RON)",
+                "Grouped by reconstructed wine identity, not by identical wording. Every match "
+                "is listed with its key so it can be audited.", width=10)
+    cols = ["Wine", "Wine Key", "Brand", "Volume (L)", "Retailers", "Cheapest (RON)",
             "Dearest (RON)", "Spread %", "Cheapest at", "Dearest at"]
-    header_row(ws, 4, cols, [48, 20, 10, 10, 14, 13, 10, 18, 18])
+    header_row(ws, 4, cols, [44, 46, 20, 10, 10, 14, 13, 10, 18, 18])
     r = 5
     for m in matches:
-        ws.cell(row=r, column=1, value=m["name"][:80])
-        ws.cell(row=r, column=2, value=m["brand"])
-        ws.cell(row=r, column=3, value=m["vol"])
-        ws.cell(row=r, column=4, value=m["n"])
-        ws.cell(row=r, column=5, value=round(m["lo"], 2))
-        ws.cell(row=r, column=6, value=round(m["hi"], 2))
-        ws.cell(row=r, column=7, value=m["spread"])
-        ws.cell(row=r, column=8, value=LABELS.get(m["cheap"], m["cheap"]))
-        ws.cell(row=r, column=9, value=LABELS.get(m["dear"], m["dear"]))
+        for column, value in enumerate([
+            m["name"][:80], m.get("key"), m["brand"], m["vol"], m["n"],
+            round(m["lo"], 2), round(m["hi"], 2), m["spread"],
+            LABELS.get(m["cheap"], m["cheap"]), LABELS.get(m["dear"], m["dear"]),
+        ], start=1):
+            ws.cell(row=r, column=column, value=value)
         r += 1
-    body(ws, 5, r - 1, 1, 9,
-         {3: '0.000', 4: '#,##0', 5: '#,##0.00', 6: '#,##0.00', 7: '0.0%'})
+    body(ws, 5, r - 1, 1, 10,
+         {4: '0.000', 5: '#,##0', 6: '#,##0.00', 7: '#,##0.00', 8: '0.0%'})
     ws.freeze_panes = "A5"
     note(ws, r + 1,
-         "Matching requires the brand field, the full set of distinctive words in the product "
-         "name, and the bottle size to be identical, so it is precise but incomplete — wines "
-         "whose listings are worded differently are missed. Rows mixing shelf and platform "
+         "Wines are matched on the reconstructed identity in the 'Wine Key' column of the Data "
+         "sheet, not on identical wording: cash & carry abbreviations are expanded, brands are "
+         "read from the title where the retailer publishes no brand field, and an attribute one "
+         "shop omits is resolved against the shops that state it. Rows mixing shelf and platform "
          "prices overstate the gap: check 'Price Basis' on the Data sheet before acting on any "
-         "single line.")
-    ws.merge_cells(start_row=r + 1, start_column=1, end_row=r + 3, end_column=9)
+         "single line. A spread above 150% usually means two different wines were grouped, not a "
+         "bargain — 'winescraper check' lists them.")
+    ws.merge_cells(start_row=r + 1, start_column=1, end_row=r + 3, end_column=10)
+    return ws
+
+
+def build_wine_matrix(wb, rows, retailers):
+    """One row per wine, one column per retailer: the sheet to pivot on.
+
+    The Data sheet answers "what does this shop sell"; this one answers "what
+    does this wine cost, everywhere it is sold" — which is the question the
+    wine key exists to make askable.
+    """
+    ws = wb.create_sheet("Price by Wine", 2)
+    title_block(ws, "Price by Wine and Retailer",
+                "One row per wine. Blank means that retailer does not carry it.",
+                width=7 + len(retailers))
+
+    by_key = defaultdict(list)
+    for r in rows:
+        if r.get("wine_key") and r.get("price"):
+            by_key[r["wine_key"]].append(r)
+
+    labels = [LABELS.get(k, k) for k in retailers]
+    cols = ["Wine Key", "Example Name", "Brand", "Volume (L)", "Retailers",
+            "Cheapest (RON)", "Dearest (RON)", "Spread %"] + labels
+    header_row(ws, 4, cols,
+               [46, 44, 18, 10, 10, 14, 13, 10] + [13] * len(retailers))
+
+    ordered = sorted(by_key.items(),
+                     key=lambda kv: (-len({r["retailer"] for r in kv[1]}), kv[0]))
+    r = 5
+    for key, listings in ordered:
+        # One price per retailer: the cheapest, when a shop lists a wine twice.
+        cheapest = {}
+        for listing in listings:
+            ret = listing["retailer"]
+            if ret not in cheapest or listing["price"] < cheapest[ret]["price"]:
+                cheapest[ret] = listing
+        prices = [v["price"] for v in cheapest.values()]
+        lo, hi = min(prices), max(prices)
+        example = max((v["name"] for v in cheapest.values()), key=len)
+        brand = next((v.get("brand") for v in cheapest.values() if v.get("brand")), "")
+        volume = next(iter(cheapest.values())).get("volume_l")
+        values = [key, example[:70], brand, volume, len(cheapest),
+                  round(lo, 2), round(hi, 2), (hi / lo - 1) if lo else None]
+        values += [round(cheapest[k]["price"], 2) if k in cheapest else None
+                   for k in retailers]
+        for column, value in enumerate(values, start=1):
+            ws.cell(row=r, column=column, value=value)
+        r += 1
+
+    money = {i: '#,##0.00' for i in range(9, 9 + len(retailers))}
+    money.update({4: '0.000', 5: '#,##0', 6: '#,##0.00', 7: '#,##0.00', 8: '0.0%'})
+    body(ws, 5, r - 1, 1, 8 + len(retailers), money)
+    ws.freeze_panes = "C5"
+    note(ws, r + 1,
+         "Wines are grouped by the reconstructed identity in 'Wine Key'. Shelf and platform "
+         "prices sit in the same row and are not like for like — see 'Price Basis' on the Data "
+         "sheet. A spread above 150% is more likely two wines grouped as one than a real "
+         "bargain; 'winescraper check' lists every such row.")
+    ws.merge_cells(start_row=r + 1, start_column=1, end_row=r + 3,
+                   end_column=8 + len(retailers))
     return ws
 
 
@@ -717,6 +786,7 @@ def main():
     build_origin(wb, rows, last)
     matches = find_matches(rows)
     build_spread(wb, matches)
+    build_wine_matrix(wb, rows, retailers)
     build_wins(wb, matches)
     build_key_points(wb, rows, matches, stats_by_ret)
 

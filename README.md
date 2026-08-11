@@ -44,6 +44,13 @@ python -m winescraper run --site carrefour --dry-run
 python -m winescraper stats
 python -m winescraper export --site selgros --out exports/selgros.csv
 python -m winescraper history --limit 20
+
+# the same wine across retailers, however each of them writes its name
+python -m winescraper wines --min-retailers 5
+python -m winescraper wines --key purcari-chardonnay-alb-sec-0-75l-32377c
+
+# what looks wrong in the stored data
+python -m winescraper check
 ```
 
 `run` writes to `data/wines.sqlite` and drops a timestamped CSV + JSONL per
@@ -96,13 +103,15 @@ and region are dense on Auchan and sparse elsewhere. Fields that cannot be read
 with confidence are left `NULL` rather than guessed.
 
 `price_per_litre` is computed from price and volume, which makes bottles of
-different sizes comparable across retailers.
+different sizes comparable across retailers. `wine_key` links listings of the
+same wine across shops — see [Wine identity](#wine-identity).
 
 ### Storage
 
 SQLite with three tables:
 
-- `products` — one row per (retailer, external_id), updated in place
+- `products` — one row per (retailer, external_id), updated in place, carrying
+  the `wine_key` that links the same wine across retailers
 - `price_observations` — appended **only when the price, promotion flag or stock
   status actually changes**, so history stays meaningful instead of growing by
   one identical row per product per run
@@ -183,6 +192,63 @@ Bringo (store-slug probes):
 - Wolt and Bolt both run their own dark-store groceries (Wolt Market, Bolt
   Market) that stock wine; adapters for those would be trivial subclasses if
   ever wanted.
+
+## Wine identity
+
+Thirteen retailers write the same bottle thirteen ways. Purcari's Chardonnay is
+sold by nine of them, as "Vin alb sec Purcari Chardonnay", "PURCARI CHARDONNAY
+SEC 0,75", "PURCARI 1827 Chardonnay de Purcari Vin Alb Sec SGR 0,75 L",
+"Purcari chardonnay Vin alb sec 750 ml" and five more. No retailer publishes a
+barcode and every product id is per-shop, so nothing in the source data connects
+them.
+
+`winescraper.identity` reconstructs the connection and stores it as a
+**`wine_key`** — a readable, deterministic slug such as
+`purcari-chardonnay-alb-sec-0-75l-32377c`. The same wine gets the same key in
+every run, so price history survives a re-scrape.
+
+```bash
+python -m winescraper wines --min-retailers 5
+python -m winescraper wines --key purcari-rose-purcari-cabernet-sauvignon-merlot-rose-sec-0-75-8da370
+```
+
+It works in three steps:
+
+- **Expand.** Cash & carry titles are abbreviated to the point of being another
+  language — `CAB SAUV`, `FET N`, `TAM ROM`, `PIN GRIG` — so those are restored
+  first. Deposit markers, appellation codes, ABV and packaging words are dropped.
+- **Separate identity from description.** What remains splits into the *anchor*
+  (the producer's name for this wine) and attributes recorded in their own right:
+  grape, colour, sweetness, volume. Retailers disagree about which attributes to
+  print, not about the anchor. Brands are learned from the retailers that publish
+  a brand field and then read out of the titles of the six that do not — 1,064
+  listings that were previously unmatchable.
+- **Resolve the gaps.** An unstated attribute is unknown, not absent, so it is
+  resolved against the other listings of the same anchor — but only where they
+  agree. If the anchor covers a Chardonnay and a Merlot, a listing naming
+  neither keeps its own identity rather than being guessed into one.
+
+Three rules exist because the naive version got them wrong:
+
+- **A tier word is part of the name.** Tohani Premium costs 2.5x plain Tohani,
+  and Villa Vinea Classic is not Villa Vinea Selection. But "Premium" with no
+  brand to qualify identifies nothing, so it never forms an identity alone.
+- **A colour can be the range name.** "Roșu de Purcari" at 110 lei is not
+  Purcari Cabernet Sauvignon at 39. Where some shops name the range and others
+  do not, what separates "two names for one wine" from "two wines" is who sells
+  them: a shop lists a given wine once, so if the same retailer appears on both
+  sides they are different wines.
+- **A vintage matters when it is old.** Cotnari sells a 1994 Fetească Albă at
+  203 lei beside an ordinary one at 22, so the year is the product. A 2023
+  Purcari Chardonnay and an unlabelled one are the same wine on the same shelf,
+  and treating the year as identity there would split seven retailers into eight.
+
+This groups **763 wines carried by two or more retailers**, against 226 for the
+exact-wording matcher it replaced. It is not infallible: identity is inferred
+from text, so `winescraper check` reports any group whose prices span more than
+2.5x, which is the shape of a wrong merge. On the current data that is five
+groups, and one of them is a genuine Auchan duplicate listed at both 34.99 and
+109.99 lei.
 
 ## Data quality
 

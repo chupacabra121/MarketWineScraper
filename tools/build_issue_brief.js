@@ -489,7 +489,8 @@ kids.push(body([
 ]));
 
 kids.push(...exhibit({
-  title: 'METRO holds the lowest price on four out of five wines it shares with a competitor.',
+  title: `METRO holds the lowest price on ${pct(W.winrate)} of the wines it shares with a `
+    + 'competitor.',
   subtitle: { label: 'Price outcome on wines carried by two or more retailers', unit: 'number and %' },
   headers: ['Retailer', 'Shared wines', 'Times cheapest', 'Win rate, as paid',
             'Win rate, pre-discount', 'Times dearest'],
@@ -545,7 +546,9 @@ kids.push(...exhibit({
     n(m.retailers), money(m.lo), money(m.hi), pct(m.spread),
   ]),
   widths: [4700, 1400, 1400, 1400, 1300],
-  note: 'Matched on identical brand, product wording, and bottle size.',
+  note: 'Matched on reconstructed wine identity: abbreviations expanded, brands read from the '
+    + 'title where the retailer publishes none, and attributes one shop omits resolved against '
+    + 'the shops that state them.',
 }));
 kids.push(body('Beciul Domnesc and Domeniile Sâmburești each appear at four retailers. Labels this '
   + 'widely distributed carry the tightest price gaps, because shoppers can compare them directly.'));
@@ -749,7 +752,7 @@ const points = [
      { t: 'The advantage is structural, not promotional: ', b: true },
      { t: `METRO ran no discounts at all on its ${n(F.by_retailer.metro)} wines during the period measured, and still undercut retailers whose prices did include active discounts. Reversing those discounts raises METRO's win rate to ${pct(R.wins_regular.metro.winrate)}. The limitation is that many METRO wines carry a six-bottle minimum order, so the advantage applies to case buying rather than to a single bottle.` }]],
   [`Buying each wine where it is cheapest costs ${pct(M.basket_hi / M.basket_lo - 1)} less than buying each where it is dearest.`,
-    [{ t: `Across the ${M.n} wines matched at two or more retailers, the same basket costs ${n(M.basket_lo)} lei bought cheapest-each against ${n(M.basket_hi)} lei bought dearest-each. The median wine varies ${pct(M.median)}, ${pct(M.over20)} vary by 20 percent or more, and the widest gap is ${pct(M.max)}. ` },
+    [{ t: `Across the ${M.n} wines matched at two or more retailers, the same basket costs ${n(M.basket_lo)} lei bought cheapest-each against ${n(M.basket_hi)} lei bought dearest-each. The median wine varies ${pct(M.median)}, and ${pct(M.over20)} vary by 20 percent or more. ` },
      { t: `On standing prices, with every discount reversed, the saving is ${pct(PS.regular_basket)} — so most of it is structural rather than a matter of catching a sale. For a buyer this is the size of the prize from comparing before purchase. For a retailer it identifies which of its own lines sit visibly out of line with the market.` }]],
   ['Dry wine sells for 1.5 to 2.2 times the price per litre of semi-dry wine.',
     [{ t: `Median price per litre is ${money(R.sweetness.sec.median_ppl)} lei for dry wine, ${money(R.sweetness.demisec.median_ppl)} lei for semi-dry (demisec), and ${money(R.sweetness.demidulce.median_ppl)} lei for semi-sweet (demidulce). ` },
@@ -779,11 +782,14 @@ kids.push(head('Method and limitations'));
 kids.push(bullet(`All figures come from one complete collection run on ${COLLECTED} covering `
   + `${n(F.total)} wine listings from 13 sources. Prices move; this is a snapshot, and the tool `
   + `records a price history on later runs.`));
-kids.push(bullet(`Matching the same wine across retailers requires the brand, the full set of `
-  + `distinctive words in the product name, and the bottle size to be identical. This is accurate `
-  + `but incomplete: wines described differently by different shops are missed, so the ${M.n} `
-  + `matched wines understate the true overlap. A looser rule was tested and rejected after it `
-  + `grouped genuinely different wines together and produced false gaps above 130 percent.`));
+kids.push(bullet(`The same wine is recognised across retailers by rebuilding its identity from `
+  + `the title, because no retailer publishes a barcode and product ids are per-shop. Cash & carry `
+  + `abbreviations are expanded, brands are read from the title for the six sources that publish `
+  + `no brand field, and an attribute one shop leaves out is resolved against the shops that state `
+  + `it — but only where they agree, so an ambiguous listing keeps its own identity rather than `
+  + `being guessed into a group. That matches ${M.n} wines across two or more retailers. It is `
+  + `still incomplete, and it can be wrong: a handful of groups span prices too wide to be one `
+  + `wine, and those are listed rather than hidden.`));
 kids.push(bullet('Price comparisons use 0.75 litre bottles only. Shelf and platform prices are '
   + 'labelled throughout and should not be pooled.'));
 kids.push(bullet(`Recorded prices are what a shopper pays on the day, including any active `
