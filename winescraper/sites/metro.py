@@ -84,7 +84,13 @@ class MetroAdapter(Adapter):
         return str(self.config.get("store_id", DEFAULT_STORE))
 
     @property
-    def location_name(self) -> str:
+    def location(self) -> str:
+        """Which METRO the assortment was read from.
+
+        Prices are national but the range is not, so the store is part of what
+        a row means. This overrides the class attribute on ``Adapter``, which
+        ``make_product`` reads for every product.
+        """
         if self.store_id == DEFAULT_STORE:
             return "metro-baneasa-00032"
         return f"metro-store-{self.store_id}"

@@ -365,6 +365,25 @@ class Store:
     #: ever be a fallback for what the retailer did not publish.
     _DERIVED_FIELDS = ("volume_l", "abv", "vintage", "colour", "sweetness")
 
+    def backfill_locations(self, locations: dict[str, str]) -> int:
+        """Record which location a stored price belongs to, where it is missing.
+
+        The location is a property of how the scraper was configured, not
+        something read off the page, so it can be filled in for rows already
+        collected without inferring anything or re-hitting a retailer.
+        """
+        filled = 0
+        for retailer, location in locations.items():
+            if not location:
+                continue
+            cursor = self.conn.execute(
+                "UPDATE products SET location = ? "
+                "WHERE retailer = ? AND (location IS NULL OR location = '')",
+                (location, retailer))
+            filled += cursor.rowcount
+        self.conn.commit()
+        return filled
+
     def reenrich(self) -> int:
         """Fill gaps in parsed fields from the stored product names.
 

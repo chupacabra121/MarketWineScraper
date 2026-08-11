@@ -57,3 +57,24 @@ def test_non_wine_listings_are_dropped():
         adapter.make_product(external_id="2", name="Vin alb sec Feteasca 0.75L", price=29.0),
     ])
     assert [p.external_id for p in kept] == ["2"]
+
+
+def test_every_scrapable_adapter_records_a_location():
+    """Agreed at the outset: one configurable location, recorded on every row.
+    Five adapters quietly left it null on 3,247 rows — METRO even computed the
+    name and never used it."""
+    from winescraper.sites import scrapable_adapters
+
+    missing = [key for key, cls in scrapable_adapters().items()
+               if not cls(fetcher=None).location]
+    assert missing == []
+
+
+def test_metro_records_which_store_the_range_came_from():
+    """METRO prices are national but its assortment is not, so the store is
+    part of what a row means."""
+    from winescraper.sites.metro import MetroAdapter
+
+    assert MetroAdapter(fetcher=None).location == "metro-baneasa-00032"
+    assert MetroAdapter(fetcher=None, config={"store_id": "00047"}).location \
+        == "metro-store-00047"

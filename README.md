@@ -11,8 +11,11 @@ Scope decisions this build is based on:
   parsed out of the product title.
 - **Wine and sparkling** — still wine, sparkling, champagne, prosecco. No
   spirits, beer or cider.
-- **One location per retailer**, configurable. Retailers that price per store
-  record which store the price belongs to.
+- **One location per retailer**, configurable, recorded on every row. Retailers
+  that price per store record which store; national e-commerce prices record
+  `online`. `winescraper reenrich` fills it in for rows collected before an
+  adapter declared one, without re-scraping — the location comes from how the
+  scraper was configured, not from the page.
 - Retailers with no online wine catalogue are registered as stubs that report
   why, rather than being silently dropped.
 
@@ -51,6 +54,9 @@ python -m winescraper wines --key purcari-chardonnay-alb-sec-0-75l-32377c
 
 # what moved since the previous run
 python -m winescraper changes
+
+# apply the current parsing to rows already collected, without scraping
+python -m winescraper reenrich
 
 # what looks wrong in the stored data, and settling a finding for good
 python -m winescraper check

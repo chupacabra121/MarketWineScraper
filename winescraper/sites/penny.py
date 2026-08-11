@@ -29,6 +29,7 @@ class PennyAdapter(Adapter):
     key = "penny"
     label = "Penny (REWE Romania)"
     catalogue = "catalogue"
+    location = "online"
     note = "Small permanent wine range; shelf price recorded, PENNY-card price kept in raw."
 
     def _parse_tile(self, tile) -> WineProduct | None:

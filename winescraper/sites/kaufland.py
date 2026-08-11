@@ -33,6 +33,7 @@ class KauflandAdapter(Adapter):
     key = "kaufland"
     label = "Kaufland Romania"
     catalogue = "promo"
+    location = "national-leaflet"
     note = "Weekly offer leaflet only — Kaufland RO has no shoppable wine catalogue."
 
     @staticmethod

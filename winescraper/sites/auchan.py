@@ -33,6 +33,7 @@ class AuchanAdapter(Adapter):
     key = "auchan"
     label = "Auchan Romania"
     catalogue = "catalogue"
+    location = "online"
     note = "VTEX public catalog API; richest attribute coverage of all sites."
 
     async def _wine_category_paths(self) -> list[str]:

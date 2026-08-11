@@ -80,6 +80,10 @@ def build_parser() -> argparse.ArgumentParser:
     changes.add_argument("--limit", type=int, default=10,
                          help="movers to list in each direction")
 
+    fix = sub.add_parser("reenrich", parents=[common],
+                         help="apply current parsing to rows already collected")
+    fix.add_argument("--db", type=Path, default=DEFAULT_DB)
+
     hist = sub.add_parser("history-file", parents=[common],
                           help="move the price series in or out of a portable CSV")
     hist.add_argument("action", choices=("export", "import"))
@@ -281,6 +285,27 @@ def cmd_changes(args) -> int:
     return 0
 
 
+def cmd_reenrich(args) -> int:
+    """Bring stored rows up to date with the current code, without scraping.
+
+    A fix to the normaliser is worth nothing to rows already collected, and a
+    re-scrape is a poor way to apply one. Only gaps are filled: a value the
+    retailer published is never replaced by one read off its own product name.
+    """
+    from .sites import scrapable_adapters
+
+    locations = {key: cls(fetcher=None).location
+                 for key, cls in scrapable_adapters().items()}
+    with Store(args.db) as store:
+        located = store.backfill_locations(locations)
+        parsed = store.reenrich()
+        keys = store.assign_wine_keys()
+    print(f"{located:,} row(s) given a location, {parsed:,} row(s) re-parsed")
+    print(f"{keys['wines']:,} distinct wines, "
+          f"{keys['shared']:,} carried by more than one retailer")
+    return 0
+
+
 def cmd_history_file(args) -> int:
     """Carry the price series across rebuilds of the database.
 
@@ -450,6 +475,7 @@ def main(argv: list[str] | None = None) -> int:
         "wines": cmd_wines,
         "changes": cmd_changes,
         "history-file": cmd_history_file,
+        "reenrich": cmd_reenrich,
         "decide": cmd_decide,
         "decisions": cmd_decisions,
     }

@@ -30,6 +30,7 @@ class CarrefourAdapter(Adapter):
     key = "carrefour"
     label = "Carrefour Romania"
     catalogue = "catalogue"
+    location = "online"
     note = "Magento category pages, server-rendered."
 
     def _page_url(self, page: int) -> str:
