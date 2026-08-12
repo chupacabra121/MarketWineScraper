@@ -33,7 +33,9 @@ MAX_VOLUME_L = 3.0
 
 #: Composite packaging — a cardboard box holding a plastic bladder — is not a
 #: returnable container, so a bag-in-box carries no deposit whatever it holds.
-_BAG_IN_BOX = re.compile(r"\bbag[\s-]*in[\s-]*box\b|\bbib\b|\bcubi\b|\bpouch\b", re.I)
+#: "bax in box" is METRO's spelling of it, and a 3 L box charged a deposit it
+#: does not owe would be a 0.50-lei error on the price.
+_BAG_IN_BOX = re.compile(r"\bba[gx][\s-]*in[\s-]*box\b|\bbib\b|\bcubi\b|\bpouch\b", re.I)
 
 #: Some retailers stamp the deposit into the product name: METRO writes "SGR"
 #: and Kaufland suffixes the size, "0,75LSGR" or "0.75LSG".

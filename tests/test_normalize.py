@@ -419,3 +419,18 @@ def test_a_size_abbreviated_onto_a_word():
     assert parse_volume_l("POMMERY SAMPANIE BR.0,75") == 0.75
     # but a decimal cut out of a longer number still must not match
     assert parse_volume_l("SERAFIM 12L SEC 0.750 L") == 0.75
+
+
+def test_a_case_of_bottles_is_still_excluded():
+    """"Bax" is a case — the whole point of the rule."""
+    cat = "Vinuri / Vinuri Albe"
+    assert not looks_like_wine("BAX 6 sticle vin alb sec 0,75 L", cat)
+    assert not looks_like_wine("CASTEL HUNIADE Vin Alb Demisec SGR 6 x 0,187 L", cat)
+
+
+def test_metros_misspelt_bag_in_box_is_wine():
+    """METRO writes "Bax in box". The multipack rule read that as a case and
+    dropped the whole Vinul Stramosesc 10 L range."""
+    cat = "Alimentare / Bauturi Alcoolice, Vinuri & Bere / Vinuri Albe"
+    assert looks_like_wine("VINUL STRAMOSESC Vin Alb Demisec Bax in box 10 L", cat)
+    assert looks_like_wine("CRAMA CEPTURA CERVUS CEPTURUM Vin Rose Demisec Bax in box 3 L", cat)

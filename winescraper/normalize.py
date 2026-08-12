@@ -130,7 +130,9 @@ _NOT_WINE_PATTERNS = [
     # Multipacks and gift sets price a bundle, not a bottle
     # "Pachet vin alb ... (3+1) x 0.75 l" prices a bundle. A single bottle in a
     # gift box is still one bottle, so gift packaging alone is not excluded.
-    r"^pachet\b|\bbax\b|\b\d+\s*x\s*\d|\(\d\+\d\)",
+    # "Bax" is a case of bottles — except when METRO misspells "Bag in box",
+    # which it does on five wines, one of them a whole 10 L range.
+    r"^pachet\b|\bbax\b(?!\s*in\s*box)|\b\d+\s*x\s*\d|\(\d\+\d\)",
     # Two bottles priced as one line: "Kanga Mateus Rose 0.75L + Mateus Rose
     # 0.187L". A gift box has one volume in its title; a pack has two.
     r"\d\s*(l|ml)\b.*\+.*\d\s*(l|ml)\b",

@@ -110,3 +110,8 @@ class TestPricing:
     def test_per_litre_follows_the_price_it_is_given(self):
         row = self._row(volume_l=2.0, price=18.30, name="MUSCATEL 2,0 PET")
         assert pricing.per_litre(pricing.paid(row), 2.0) == pytest.approx(9.40)
+
+
+def test_a_misspelt_bag_in_box_owes_no_deposit():
+    """METRO writes "Bax in box"; a 3 L box is exempt however it is spelt."""
+    assert deposit.amount(3.0, "CERVUS CEPTURUM Vin Rose Demisec Bax in box 3 L") == 0.0
