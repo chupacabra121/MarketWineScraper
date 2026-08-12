@@ -242,12 +242,21 @@ def parse_volume_l(text: str) -> float | None:
     # that the number is not immediately followed by a '%'.
     # Three decimals are common in cash & carry titles: Selgros writes the
     # 187 ml miniature as "0,187" and Profi writes "0,750 Lit".
-    for match in re.finditer(r"(?<![\d.,%])(\d{1,2}[.,]\d{1,3})(?!\s*%)(?![\d.,])", folded):
+    # The lookbehind rejects a decimal cut out of a longer number but not one
+    # abbreviated onto a word, which is how Selgros writes "STIH SAUV. BLANC
+    # S.0,75".
+    for match in re.finditer(r"(?<![\d,%])(?<!\d\.)(\d{1,2}[.,]\d{1,3})(?!\s*%)(?![\d.,])",
+                             folded):
         try:
             candidate = float(match.group(1).replace(",", "."))
         except ValueError:
             continue
         if 0.1 <= candidate <= 5.0:
+            return round(candidate, 4)
+        # Above five litres only a whole number is a cask: Selgros writes its
+        # ten-litre boxes "10,0". An unlabelled "13,5" at that size is alcohol
+        # by volume with the sign left off, and no wine comes in 13.5 litres.
+        if 5.0 < candidate <= 10.0 and candidate == int(candidate):
             return round(candidate, 4)
     return None
 

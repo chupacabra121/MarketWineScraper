@@ -399,3 +399,23 @@ def test_drinks_that_are_not_a_bottle_of_wine_are_excluded(title):
 ])
 def test_strong_wines_and_lookalikes_survive(title):
     assert looks_like_wine(title, "Vinuri/Vin rosu") is True
+
+
+def test_a_ten_litre_cask_written_without_a_unit():
+    """Selgros writes its bag-in-box sizes as a bare number: "10,0"."""
+    assert parse_volume_l("VINUL STRAMOSESC ALB BIB DEMIDULCE 10,0") == 10.0
+    assert parse_volume_l("CRAMA STARMINA SAUVIGNON BLANC BIB 10,00") == 10.0
+
+
+def test_an_unlabelled_strength_is_not_read_as_a_cask():
+    """Above five litres only a whole number is a size; 13,5 is alcohol."""
+    assert parse_volume_l("VIN ROSU SEC 13,5") is None
+    assert parse_volume_l("VIN ALB DEMISEC 9,5") is None
+
+
+def test_a_size_abbreviated_onto_a_word():
+    """Selgros compresses titles: "S.0,75" is a 0.75 L bottle, sec."""
+    assert parse_volume_l("STIH SAUV. BLANC S.0,75") == 0.75
+    assert parse_volume_l("POMMERY SAMPANIE BR.0,75") == 0.75
+    # but a decimal cut out of a longer number still must not match
+    assert parse_volume_l("SERAFIM 12L SEC 0.750 L") == 0.75
