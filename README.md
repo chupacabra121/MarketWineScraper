@@ -126,7 +126,9 @@ SQLite with three tables:
   the `wine_key` that links the same wine across retailers
 - `price_observations` — appended **only when the price, promotion flag or stock
   status actually changes**, so history stays meaningful instead of growing by
-  one identical row per product per run
+  one identical row per product per run. Each observation stores the name the
+  wine had at the time: retailers recycle product ids, and reading the name off
+  `products` when exporting rewrote past prices to match the present product
 - `runs` — per-run bookkeeping and errors
 
 ## Politeness

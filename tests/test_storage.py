@@ -1,5 +1,6 @@
 """Tests for SQLite persistence and price history."""
 
+import csv
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -221,3 +222,50 @@ def test_one_retailer_running_does_not_delist_the_others(store):
     store.upsert(make(31.0, external_id="a"))          # testmart alone re-runs
     store.conn.commit()
     assert {r["retailer"] for r in store.latest()} == {"testmart", "othermart"}
+
+
+def test_a_recycled_product_id_does_not_relabel_past_prices(tmp_path):
+    """Carrefour reused two product ids for different wines on consecutive
+    days. The name used to be read off `products` when the history was
+    exported, so yesterday's row picked up today's wine — a price series that
+    silently rewrites its own past."""
+    history = tmp_path / "h.csv"
+    with Store(tmp_path / "a.sqlite") as store:
+        store.save_all([make(18.49, external_id="10005615",
+                             name="Vin rose Sigillum Moldaviae, Demisec, 0.75L")])
+        _observed_on(store, "2026-08-11T09:36:21+00:00")
+        # Same id, different wine, different price.
+        store.save_all([make(21.99, external_id="10005615",
+                             name="Vin alb demidulce Domeniile Recas Gewurtztraminer")])
+        store.export_history(history)
+
+    rows = list(csv.DictReader(history.open(encoding="utf-8")))
+    assert [r["name"] for r in rows] == [
+        "Vin rose Sigillum Moldaviae, Demisec, 0.75L",
+        "Vin alb demidulce Domeniile Recas Gewurtztraminer",
+    ]
+
+
+def test_an_exported_name_survives_a_round_trip(tmp_path):
+    history = tmp_path / "h.csv"
+    with Store(tmp_path / "a.sqlite") as store:
+        store.save_all([make(18.49, external_id="x", name="Vin rosu sec Alira, 0.75L")])
+        store.export_history(history)
+    with Store(tmp_path / "b.sqlite") as store:
+        store.import_history(history)
+        store.export_history(history)
+    rows = list(csv.DictReader(history.open(encoding="utf-8")))
+    assert [r["name"] for r in rows] == ["Vin rosu sec Alira, 0.75L"]
+
+
+def test_history_written_before_the_name_column_still_exports(tmp_path):
+    """Databases predating the column fall back to the product name, which is
+    the best that can be recovered for them."""
+    path = tmp_path / "old.sqlite"
+    with Store(path) as store:
+        store.save_all([make(30.0, external_id="a", name="Vin alb sec 0.75L")])
+        store.conn.execute("UPDATE price_observations SET name = NULL")
+        store.conn.commit()
+        store.export_history(tmp_path / "h.csv")
+    rows = list(csv.DictReader((tmp_path / "h.csv").open(encoding="utf-8")))
+    assert rows[0]["name"] == "Vin alb sec 0.75L"

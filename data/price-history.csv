@@ -1532,7 +1532,7 @@ observed_at,retailer,external_id,name,price,currency,list_price,on_promotion,off
 2026-08-11T09:36:21.068429+00:00,carrefour,10005412,"Vin rose sec, Caii de la Letea, Volumul II, 0.75L",58.99,RON,,0,catalogue,1
 2026-08-11T09:36:21.069041+00:00,carrefour,10005464,"Vin rose sec Busuioaca de Bohotin Strunga , sec, 0.75 L",41.99,RON,,0,catalogue,1
 2026-08-11T09:36:21.069368+00:00,carrefour,10005374,"Vin rose Aurelia Visinescu, Promessa Dealu Mare, 0.75L",34.49,RON,,0,catalogue,1
-2026-08-11T09:36:21.069711+00:00,carrefour,10005615,"Vin alb demidulce, Domeniile Recas Gewurtztraminer, Cramele Recas, 0.75 l",18.49,RON,,0,catalogue,1
+2026-08-11T09:36:21.069711+00:00,carrefour,10005615,"Vin rose Sigillum Moldaviae, Demisec, 0.75L",18.49,RON,,0,catalogue,1
 2026-08-11T09:36:22.113472+00:00,carrefour,10005759,"Vin Rose Verite Cabernet Sauvignon, demisec, 0.187L",15.99,RON,,0,catalogue,1
 2026-08-11T09:36:22.114160+00:00,carrefour,10005252,"Vin rose demisec, Magnus Monte Ceptura, 0.75L",32.65,RON,,0,catalogue,1
 2026-08-11T09:36:22.114694+00:00,carrefour,10005295,Vin rose demisec Cervus Crama Ceptura 0.75L,14.99,RON,,0,catalogue,1
@@ -1715,7 +1715,7 @@ observed_at,retailer,external_id,name,price,currency,list_price,on_promotion,off
 2026-08-11T09:36:25.686755+00:00,carrefour,10003183,"Vin rosu sec, Domeniul Panciu Feteasca Neagra, 0.75L",57.49,RON,,0,catalogue,1
 2026-08-11T09:36:25.687083+00:00,carrefour,10004834,"Vin rosu sec, Castel Bolovanu Cabernet Sauvignon, 0.75L",23.99,RON,,0,catalogue,1
 2026-08-11T09:36:25.687348+00:00,carrefour,10003439,"Vin rosu sec, Domeniile Vinarte, 0.75L",29.49,RON,,0,catalogue,1
-2026-08-11T09:36:25.687597+00:00,carrefour,10003337,"Vin rosu Serve Cuvee Guillaume, Sec, 0.75L",31.49,RON,,0,catalogue,1
+2026-08-11T09:36:25.687597+00:00,carrefour,10003337,"Vin rosu, Alira Flamma rosu Savuros 2017, 0.75L",31.49,RON,,0,catalogue,1
 2026-08-11T09:36:26.842888+00:00,carrefour,10003131,"Vin rosu sec, Domeniile Samburesti Pinot Noir, 0.75L",37.99,RON,,0,catalogue,1
 2026-08-11T09:36:26.843524+00:00,carrefour,10003130,"Vin rosu sec, Domeniile Samburesti Feteasca Neagra, 0.75L",32.99,RON,,0,catalogue,1
 2026-08-11T09:36:26.844151+00:00,carrefour,10002902,"Vin rosu sec, Domeniile Samburesti Merlot, 0.75L",32.99,RON,,0,catalogue,1

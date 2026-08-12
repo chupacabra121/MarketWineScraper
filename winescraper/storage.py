@@ -73,6 +73,11 @@ CREATE INDEX IF NOT EXISTS idx_obs_product ON price_observations(product_id, obs
 # than in SCHEMA: an existing file must gain the column without being rebuilt.
 _MIGRATIONS = [
     ("products", "wine_key", "ALTER TABLE products ADD COLUMN wine_key TEXT"),
+    # What the wine was called when this price was seen. Retailers recycle
+    # product ids — Carrefour reused two on consecutive days — and reading the
+    # name off `products` at export time rewrote the past to match the present.
+    ("price_observations", "name",
+     "ALTER TABLE price_observations ADD COLUMN name TEXT"),
 ]
 _MIGRATION_INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_products_wine_key ON products(wine_key)",
@@ -225,14 +230,17 @@ class Store:
             )
             if unchanged:
                 return False
+        # The name is stored with the observation, not looked up from the
+        # product later: a retailer that reuses an id would otherwise relabel
+        # every past price of the wine that used to hold it.
         self.conn.execute(
-            "INSERT INTO price_observations (product_id, observed_at, price, currency, "
-            "list_price, unit_price, unit_price_unit, price_per_litre, on_promotion, "
-            "offer_type, in_stock, run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            (product_id, product.scraped_at.isoformat(), product.price, product.currency,
-             product.list_price, product.unit_price, product.unit_price_unit,
-             product.price_per_litre, int(product.on_promotion), product.offer_type,
-             in_stock, run_id),
+            "INSERT INTO price_observations (product_id, observed_at, name, price, "
+            "currency, list_price, unit_price, unit_price_unit, price_per_litre, "
+            "on_promotion, offer_type, in_stock, run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (product_id, product.scraped_at.isoformat(), product.name, product.price,
+             product.currency, product.list_price, product.unit_price,
+             product.unit_price_unit, product.price_per_litre,
+             int(product.on_promotion), product.offer_type, in_stock, run_id),
         )
         return True
 
@@ -443,8 +451,13 @@ class Store:
         path.parent.mkdir(parents=True, exist_ok=True)
         rows = self.conn.execute(
             """
-            SELECT o.observed_at, p.retailer, p.external_id, p.name, o.price,
-                   o.currency, o.list_price, o.on_promotion, o.offer_type, o.in_stock
+            SELECT o.observed_at, p.retailer, p.external_id,
+                   -- The observation's own name, so a recycled product id
+                   -- cannot relabel a price recorded before it was reused.
+                   -- COALESCE covers rows written before the column existed.
+                   COALESCE(o.name, p.name) AS name,
+                   o.price, o.currency, o.list_price, o.on_promotion,
+                   o.offer_type, o.in_stock
             FROM price_observations o JOIN products p ON p.id = o.product_id
             ORDER BY o.observed_at, p.retailer, p.external_id
             """).fetchall()
@@ -477,13 +490,13 @@ class Store:
                 if exists:
                     continue
                 self.conn.execute(
-                    "INSERT INTO price_observations (product_id, observed_at, price, "
-                    "currency, list_price, on_promotion, offer_type, in_stock) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (product_id, row["observed_at"], _float(row["price"]),
-                     row["currency"] or None, _float(row["list_price"]),
-                     _int(row["on_promotion"]), row["offer_type"] or None,
-                     _int(row["in_stock"])))
+                    "INSERT INTO price_observations (product_id, observed_at, name, "
+                    "price, currency, list_price, on_promotion, offer_type, in_stock) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (product_id, row["observed_at"], row["name"] or None,
+                     _float(row["price"]), row["currency"] or None,
+                     _float(row["list_price"]), _int(row["on_promotion"]),
+                     row["offer_type"] or None, _int(row["in_stock"])))
                 loaded += 1
         self.conn.commit()
         return loaded
