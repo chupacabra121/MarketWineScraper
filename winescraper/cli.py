@@ -12,6 +12,7 @@ from pathlib import Path
 from .export import export_run
 from .runner import RunOptions, resolve_sites, run_sites
 from .sites import all_adapters
+from . import captures
 from .storage import Store
 
 DEFAULT_DB = Path("data/wines.sqlite")
@@ -89,6 +90,13 @@ def build_parser() -> argparse.ArgumentParser:
     hist.add_argument("action", choices=("export", "import"))
     hist.add_argument("--db", type=Path, default=DEFAULT_DB)
     hist.add_argument("--path", type=Path, default=Path("data/price-history.csv"))
+
+    capture = sub.add_parser("capture", parents=[common],
+                             help="load shelf prices written down by hand")
+    capture.add_argument("action", choices=("import", "template"))
+    capture.add_argument("--db", type=Path, default=DEFAULT_DB)
+    capture.add_argument("--path", type=Path,
+                         default=Path("data/shelf-captures.csv"))
 
     stats = sub.add_parser("stats", parents=[common], help="row counts per retailer")
     stats.add_argument("--db", type=Path, default=DEFAULT_DB)
@@ -322,6 +330,34 @@ def cmd_history_file(args) -> int:
     return 0
 
 
+def cmd_capture(args) -> int:
+    """Bring hand-read shelf prices in, for the chains no scraper reaches.
+
+    Seven Romanian chains publish nothing anywhere; without this their prices
+    can only be quoted in conversation, where they cannot be compared, checked
+    or kept.
+    """
+    if args.action == "template":
+        print(f"wrote {captures.template(args.path)}")
+        return 0
+    products = captures.read(args.path)
+    if not products:
+        print(f"nothing to load from {args.path}")
+        return 0
+    with Store(args.db) as store:
+        by_retailer: dict[str, list] = {}
+        for product in products:
+            by_retailer.setdefault(product.retailer, []).append(product)
+        for retailer, group in sorted(by_retailer.items()):
+            run_id = store.start_run(retailer)
+            seen, added = store.save_all(group, run_id)
+            store.finish_run(run_id, "capture", seen, added,
+                             f"{seen} shelf price(s) read by hand")
+            print(f"{retailer}: {seen} listing(s), {added} price(s) recorded")
+        store.assign_wine_keys()
+    return 0
+
+
 def cmd_stats(args) -> int:
     with Store(args.db) as store:
         rows = store.stats()
@@ -475,6 +511,7 @@ def main(argv: list[str] | None = None) -> int:
         "wines": cmd_wines,
         "changes": cmd_changes,
         "history-file": cmd_history_file,
+        "capture": cmd_capture,
         "reenrich": cmd_reenrich,
         "decide": cmd_decide,
         "decisions": cmd_decisions,

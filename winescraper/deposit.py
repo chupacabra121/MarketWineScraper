@@ -103,6 +103,17 @@ INCLUDED_IN_PRICE: dict[str, bool | None] = {
     "penny": False,
     "penny_bolt": False,
     "profi_glovo": False,
+    # Chains with no catalogue anywhere, whose prices can only be read off a
+    # shelf by hand. A Romanian price rail shows the product price and states
+    # the deposit separately — the law requires it — so a captured price is
+    # deposit-exclusive like every other source here.
+    "froo": False,
+    "lidl": False,
+    "lacocos": False,
+    "unicarm": False,
+    "annabella": False,
+    "ladoipasi": False,
+    "atac": False,
     # Neither appears in the audit and neither publishes a deposit field.
     # Glovo's *Penny* store was measured at 0.50 above Bolt's in an earlier
     # survey, which is why Supeco is suspected of including it — but suspected
