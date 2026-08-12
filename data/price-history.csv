@@ -1532,7 +1532,7 @@ observed_at,retailer,external_id,name,price,currency,list_price,on_promotion,off
 2026-08-11T09:36:21.068429+00:00,carrefour,10005412,"Vin rose sec, Caii de la Letea, Volumul II, 0.75L",58.99,RON,,0,catalogue,1
 2026-08-11T09:36:21.069041+00:00,carrefour,10005464,"Vin rose sec Busuioaca de Bohotin Strunga , sec, 0.75 L",41.99,RON,,0,catalogue,1
 2026-08-11T09:36:21.069368+00:00,carrefour,10005374,"Vin rose Aurelia Visinescu, Promessa Dealu Mare, 0.75L",34.49,RON,,0,catalogue,1
-2026-08-11T09:36:21.069711+00:00,carrefour,10005615,"Vin rose Sigillum Moldaviae, Demisec, 0.75L",18.49,RON,,0,catalogue,1
+2026-08-11T09:36:21.069711+00:00,carrefour,10005615,"Vin alb demidulce, Domeniile Recas Gewurtztraminer, Cramele Recas, 0.75 l",18.49,RON,,0,catalogue,1
 2026-08-11T09:36:22.113472+00:00,carrefour,10005759,"Vin Rose Verite Cabernet Sauvignon, demisec, 0.187L",15.99,RON,,0,catalogue,1
 2026-08-11T09:36:22.114160+00:00,carrefour,10005252,"Vin rose demisec, Magnus Monte Ceptura, 0.75L",32.65,RON,,0,catalogue,1
 2026-08-11T09:36:22.114694+00:00,carrefour,10005295,Vin rose demisec Cervus Crama Ceptura 0.75L,14.99,RON,,0,catalogue,1
@@ -1715,7 +1715,7 @@ observed_at,retailer,external_id,name,price,currency,list_price,on_promotion,off
 2026-08-11T09:36:25.686755+00:00,carrefour,10003183,"Vin rosu sec, Domeniul Panciu Feteasca Neagra, 0.75L",57.49,RON,,0,catalogue,1
 2026-08-11T09:36:25.687083+00:00,carrefour,10004834,"Vin rosu sec, Castel Bolovanu Cabernet Sauvignon, 0.75L",23.99,RON,,0,catalogue,1
 2026-08-11T09:36:25.687348+00:00,carrefour,10003439,"Vin rosu sec, Domeniile Vinarte, 0.75L",29.49,RON,,0,catalogue,1
-2026-08-11T09:36:25.687597+00:00,carrefour,10003337,"Vin rosu, Alira Flamma rosu Savuros 2017, 0.75L",31.49,RON,,0,catalogue,1
+2026-08-11T09:36:25.687597+00:00,carrefour,10003337,"Vin rosu Serve Cuvee Guillaume, Sec, 0.75L",31.49,RON,,0,catalogue,1
 2026-08-11T09:36:26.842888+00:00,carrefour,10003131,"Vin rosu sec, Domeniile Samburesti Pinot Noir, 0.75L",37.99,RON,,0,catalogue,1
 2026-08-11T09:36:26.843524+00:00,carrefour,10003130,"Vin rosu sec, Domeniile Samburesti Feteasca Neagra, 0.75L",32.99,RON,,0,catalogue,1
 2026-08-11T09:36:26.844151+00:00,carrefour,10002902,"Vin rosu sec, Domeniile Samburesti Merlot, 0.75L",32.99,RON,,0,catalogue,1
@@ -6749,3 +6749,366 @@ observed_at,retailer,external_id,name,price,currency,list_price,on_promotion,off
 2026-08-11T09:39:04.843641+00:00,supeco_glovo,10005645,"Sol De Chile, Vin Rose Syrah 0.75L",19.87,RON,,0,catalogue,
 2026-08-11T09:39:04.843870+00:00,supeco_glovo,10511092,Mateus Branco 0.187L,13.49,RON,,0,catalogue,
 2026-08-11T09:39:04.844052+00:00,supeco_glovo,10508288,"Vin Demisec Rose Mateus 0,187L Vol.11%",13.49,RON,,0,catalogue,
+2026-08-12T06:46:22.605822+00:00,auchan,694686,"Vin alb demisec Suvorov Glamour, Sauvignon Blanc, 0.75 l",26.9,RON,38.49,1,catalogue,1
+2026-08-12T06:46:22.607965+00:00,auchan,691880,"Vin alb sec Domeniul Coroanei Segarcea Elite, Chardonnay 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:22.608264+00:00,auchan,542709,"Vin alb demisec Castel Huniade, Feteasca Regala, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:22.609463+00:00,auchan,691889,"Vin alb sec Domeniul Coroanei Segarcea Elite, Sauvignon Blanc 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:22.610102+00:00,auchan,542715,"Vin alb demidulce Castel Huniade, Muscat Ottonel, alcool 12%, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:22.611776+00:00,auchan,455827,"Pelin Carpatin, Pelin alb demisec de Urlati, 0.75 l",16.79,RON,,0,catalogue,1
+2026-08-12T06:46:22.612011+00:00,auchan,455823,"Pelin Carpatin, Pelin alb demisec de Urlati, 1.5 l",24.99,RON,29.49,1,catalogue,1
+2026-08-12T06:46:22.614139+00:00,auchan,691890,"Vin alb sec Domeniul Coroanei Segarcea Elite, Tamaioasa Romaneasca 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:22.614425+00:00,auchan,691888,"Vin alb sec Domeniul Coroanei Segarcea Elite, Feteasca Alba 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:22.615191+00:00,auchan,542710,"Vin alb sec Castel Huniade, Riesling Italian 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:22.616749+00:00,auchan,490288,"Vin alb Domeniile Vinju Mare, Tamaioasa Romaneasca 0.75 l",13.49,RON,17.99,1,catalogue,1
+2026-08-12T06:46:22.617010+00:00,auchan,490189,"Vin alb demisec Casa Panciu, Feteasca Regala, Muscat Ottonel 0.75 l",19.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.617373+00:00,auchan,490114,"Vin alb sec Caii De La Letea Legenda, 0.75 l",29.99,RON,42.99,1,catalogue,1
+2026-08-12T06:46:22.618189+00:00,auchan,455642,"Vin alb sec Jidvei Tezaur, Sauvignon Blanc si Feteasca Regala, 0.75 l",42.49,RON,,0,catalogue,1
+2026-08-12T06:46:22.619591+00:00,auchan,455610,Vin alb demidulce Jidvei Craita Transilvaniei 0.75 l,15.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.619828+00:00,auchan,455609,Vin alb demisec Jidvei Craita Transilvaniei 0.75 l,15.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.621103+00:00,auchan,167278,"Vin alb sec Chateau Cristi Bravoure Fume, Chardonnay si Rkatsiteli, 0.75 l",35.49,RON,47.39,1,catalogue,1
+2026-08-12T06:46:22.621643+00:00,auchan,724893,"Vin alb sec Caii de la Letea Volumul II, 0.75 l",60.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.625390+00:00,auchan,291946,"Vin alb sec Castel Huniade, Sarba, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:22.625574+00:00,auchan,965461,"Vin alb sec Domeniile Vinju Mare Prince Vlad, Chardonnay, 0.75 l",31.59,RON,39.49,1,catalogue,1
+2026-08-12T06:46:22.626860+00:00,auchan,777044,"Vin alb demisec Prahova Valley Feteasca Regala, 0.75 l",27.29,RON,,0,catalogue,1
+2026-08-12T06:46:22.627392+00:00,auchan,741362,"Vin alb demisec Fautor Vie de Vis, Aligote, 0.75 l",25.0,RON,35.99,1,catalogue,1
+2026-08-12T06:46:22.627470+00:00,auchan,741361,"Vin alb sec Fautor Vie de Vis, Sauvignon Blanc, 0.75 l",35.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.628482+00:00,auchan,694682,"Vin alb sec Chateau Vartely Sauvignon Blanc, 0.75 l",20.89,RON,32.29,1,catalogue,1
+2026-08-12T06:46:22.629765+00:00,auchan,693441,"Vin alb sec Cricova Prestige, Pinot Grigio, alcool 12%, 0.75 l",38.69,RON,,0,catalogue,1
+2026-08-12T06:46:22.629862+00:00,auchan,693440,"Vin alb sec Cricova Prestige, Chardonnay, alcool 12.5%, 0.75 l",38.69,RON,,0,catalogue,1
+2026-08-12T06:46:22.631340+00:00,auchan,692285,"Vin alb sec de Livia, Plavaie 0.75 l",25.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.631848+00:00,auchan,692129,"Vin alb demisec de Varancha, Feteasca Regala 0.75 l",16.99,RON,21.39,1,catalogue,1
+2026-08-12T06:46:22.634647+00:00,auchan,640195,"Vin alb sec Vinul Cavalerului, Chardonnay, 0.75 l",23.49,RON,29.39,1,catalogue,1
+2026-08-12T06:46:22.637270+00:00,auchan,542727,"Vin alb demisec Cramele Recas Muse White, Feteasca Regala si Muscat Ottonel, 0.75 l",78.49,RON,,0,catalogue,1
+2026-08-12T06:46:22.639835+00:00,auchan,532762,"Vin alb demidulce Beciul Domnesc, Muscat Ottonel 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:22.640065+00:00,auchan,532723,"Vin alb demidulce Beciul Domnesc Tamaioasa Romaneasca, 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:22.640151+00:00,auchan,532722,"Vin alb demisec Beciul Domnesc, Feteasca Regala 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:22.640391+00:00,auchan,532721,"Vin alb demisec Beciul Domnesc, Sauvignon Blanc 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:22.640614+00:00,auchan,532720,"Vin alb sec Beciul Domnesc, Chardonnay 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:22.644296+00:00,auchan,455664,"Vin alb sec Chateau Vartely, alcool 13.5%, 0. 187 l",15.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.644782+00:00,auchan,455644,"Vin alb demisec Jidvei Weinland, Feteasca Regala, 0.75 l",21.49,RON,,0,catalogue,1
+2026-08-12T06:46:22.644870+00:00,auchan,455643,"Vin alb demisec Jidvei Weinland, Sauvignon Blanc, 0.75 l",21.49,RON,,0,catalogue,1
+2026-08-12T06:46:22.644947+00:00,auchan,455636,Navigo Compas Chardonnay Alb 13.5% Sec 0.75 l,33.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.645196+00:00,auchan,455635,Vin Alb Sec Navigo Compas Pinot Grigio 12.5% 0.75 l,33.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.645552+00:00,auchan,455623,"Vin alb demisec Jidvei Nec Plus Ultra, Sauvignon Blanc 0.75 l",35.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.647679+00:00,auchan,455550,"Vin alb sec, Zghihara De Husi Averesti 0.75 l",20.99,RON,,0,catalogue,1
+2026-08-12T06:46:22.647919+00:00,auchan,455549,"Vin sec Sauvignon Blanc Zghihara de Husi, 0.75 l",26.69,RON,,0,catalogue,1
+2026-08-12T06:46:22.650400+00:00,auchan,454842,"Vin alb sec Vinarte, Sauvignon Blanc 0.75 l",22.39,RON,,0,catalogue,1
+2026-08-12T06:46:22.650624+00:00,auchan,454840,"Vin alb demisec Vinarte, Tamaioasa Romaneasca 0.75 l",22.39,RON,,0,catalogue,1
+2026-08-12T06:46:22.652094+00:00,auchan,226369,"Vin alb sec Domeniile Dealu Mare, Sauvignon Blanc si Feteasca Alba, 0.75 l",22.69,RON,34.99,1,catalogue,1
+2026-08-12T06:46:22.652287+00:00,auchan,225084,"Vin alb sec Cramele Recas Sole, Viognier, 0.75 l",61.89,RON,,0,catalogue,1
+2026-08-12T06:46:22.652800+00:00,auchan,202720,"Vin alb sec Beciul Domnesc, Galbena de Odobesti, 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:22.665290+00:00,auchan,490319,"Vin alb sec Castel Mimi Chardonnay 2018, 14% alcool, 0.75 l",52.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.563407+00:00,auchan,291925,"Vin rosu sec Cotnari Concept, Feteasca Neagra, 0.75 l",33.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.563863+00:00,auchan,691886,"Vin rosu sec Domeniul Coroanei Segarcea Elite, Pinot Noir 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:32.563962+00:00,auchan,691877,"Vin rosu sec Domeniul Coroanei Segarcea Elite, Cabernet Sauvignon 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:32.564068+00:00,auchan,542706,"Vin rosu demidulce Castel Huniade, Merlot si Pinot Noir, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:32.564419+00:00,auchan,490117,"Vin rosu sec Caii De La Letea Legenda, 0.75 l",29.99,RON,42.99,1,catalogue,1
+2026-08-12T06:46:32.564866+00:00,auchan,741364,"Vin rosu sec Fautor Vie de Vis, Cabernet Sauvignon, 0.75 l",25.0,RON,35.99,1,catalogue,1
+2026-08-12T06:46:32.564967+00:00,auchan,694688,"Vin rosu demisec Suvorov Glamour, Feteasca Neagra, 0.75 l",26.9,RON,38.49,1,catalogue,1
+2026-08-12T06:46:32.565644+00:00,auchan,691884,"Vin rosu sec Domeniul Coroanei Segarcea Elite, Merlot 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:32.565939+00:00,auchan,542707,"Vin rosu sec Castel Huniade, Cabernet Sauvignon, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:32.566312+00:00,auchan,455824,"Pelin Carpatin, Pelin rosu demisec de Urlati, 1.5 l",24.99,RON,29.49,1,catalogue,1
+2026-08-12T06:46:32.566548+00:00,auchan,455749,"Vin rosu dulce Sange de Taur, Cupaj, 1,5 l",27.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.566858+00:00,auchan,455607,"Vin rosu demidulce Jidvei Craita Transilvaniei, 0.75 l",15.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.568130+00:00,auchan,542708,"Vin rosu sec Castel Huniade, Feteasca Neagra, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:32.568586+00:00,auchan,490089,"Vin rosu sec Caii de la Letea Volumul II, 0.75 l",60.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.568766+00:00,auchan,455828,"Pelin Carpatin, Pelin rosu demisec de Urlati, 0.75 l",16.79,RON,,0,catalogue,1
+2026-08-12T06:46:32.569613+00:00,auchan,454885,"Vin rosu sec Cricova Prestige, Cabernet Sauvignon, 0.75 l",38.69,RON,,0,catalogue,1
+2026-08-12T06:46:32.571583+00:00,auchan,839573,"Vin rosu sec Vivaldi Apassimento Veneto I.G.T, 0.75 l",71.89,RON,89.89,1,catalogue,1
+2026-08-12T06:46:32.571755+00:00,auchan,839571,"Vin rosu sec Cantina di Negrar Il Viaggio Appassimento, Cupaj, 0.75 l",65.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.571935+00:00,auchan,839570,"Vin rosu demisec Cantina di Negrar Si. Mento, Corvina si Corvinone, 0.75 l",44.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.573023+00:00,auchan,741365,"Vin rosu sec Fautor Vie de Vis, Merlot, 0.75 l",25.0,RON,35.99,1,catalogue,1
+2026-08-12T06:46:32.576885+00:00,auchan,693442,"Vin rosu sec Cricova Prestige Codru, Cabernet Sauvignon si Merlot, 0.75 l",38.69,RON,,0,catalogue,1
+2026-08-12T06:46:32.583688+00:00,auchan,542714,"Vin rosu demisec Castel Huniade, Merlot, 0.75 l",25.89,RON,,0,catalogue,1
+2026-08-12T06:46:32.586313+00:00,auchan,490276,"Vin rosu sec Domeniile Vinju Mare Prince Vlad, Feteasca Neagra, 0.75 l",29.99,RON,37.49,1,catalogue,1
+2026-08-12T06:46:32.586507+00:00,auchan,490182,"Vin rosu demisec Casa Panciu, Feteasca Neagra, 0.75 l",19.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.586690+00:00,auchan,490087,"Vin rosu sec Caii de la Letea Volumul II, 0.75 l",60.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.587030+00:00,auchan,489128,"Vin rosu demisec Prahova Valley, Feteasca Neagra, 0.75 l",27.29,RON,,0,catalogue,1
+2026-08-12T06:46:32.588149+00:00,auchan,455666,"Vin rosu sec Chateau Vartely Individo, Rara Neagra, Malbec si Syrah, 0.187 l",15.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.588268+00:00,auchan,455655,"Vin rosu sec Chateau Vartely, Cabernet Sauvignon, 0.75 l",20.89,RON,32.29,1,catalogue,1
+2026-08-12T06:46:32.588432+00:00,auchan,455638,"Vin rosu sec Navigo Compas, Shiraz, 0.75 l",33.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.588598+00:00,auchan,455606,"Vin rosu demisec Jidvei Craita Transilvaniei, 0.75 l",15.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.595927+00:00,auchan,226371,"Vin rosu demisec Domeniile Dealu Mare, Cabernet Sauvignon si Feteasca Neagra, 0.75 l",22.69,RON,34.99,1,catalogue,1
+2026-08-12T06:46:32.596782+00:00,auchan,199362,"Vin rosu demisec Crama Girboiu Varancha, Merlot, 0.75 l",16.99,RON,21.39,1,catalogue,1
+2026-08-12T06:46:32.596862+00:00,auchan,199361,"Vin rosu sec Crama Girboiu Livia, Feteasca Neagra, 0.75 l",25.99,RON,,0,catalogue,1
+2026-08-12T06:46:32.606770+00:00,auchan,324468,"Vin rosu sec Caii de la Letea Volumul 1, Rara Neagra, 0.75 l",37.99,RON,,0,catalogue,1
+2026-08-12T06:46:38.694030+00:00,auchan,691887,"Vin rose sec Domeniul Coroanei Segarcea, 0.75 l",33.89,RON,39.99,1,catalogue,1
+2026-08-12T06:46:38.695276+00:00,auchan,455826,"Pelin Carpatin, Pelin rose demisec de Urlati, 0.75 l",16.79,RON,,0,catalogue,1
+2026-08-12T06:46:38.695518+00:00,auchan,455825,"Pelin Carpatin, Pelin rose demisec de Urlati, 1.5 l",24.99,RON,29.49,1,catalogue,1
+2026-08-12T06:46:38.695998+00:00,auchan,455560,"Vin rose demidulce Domeniile Averesti, Busuioaca de Bohotin, 0.75 l",13.59,RON,15.99,1,catalogue,1
+2026-08-12T06:46:38.696502+00:00,auchan,777695,"Vin perlant rose dulce Rose Verite, doza, 0.25 l",13.79,RON,,0,catalogue,1
+2026-08-12T06:46:38.696739+00:00,auchan,694687,"Vin rose demisec Suvorov Glamour, Merlot, 0.75 l",26.9,RON,38.49,1,catalogue,1
+2026-08-12T06:46:38.697018+00:00,auchan,542726,"Vin rose demisec Cramele Recas Muse Night, Merlot si Cabernet Sauvignon, 0.75 l",78.49,RON,,0,catalogue,1
+2026-08-12T06:46:38.697839+00:00,auchan,490289,"Vin rose demidulce Domeniile Vinju, Feteasca Neagra, 0.75 l",13.49,RON,17.99,1,catalogue,1
+2026-08-12T06:46:38.698079+00:00,auchan,490115,"Vin rose sec Caii De La Letea Legenda, 0.75 l",29.99,RON,42.99,1,catalogue,1
+2026-08-12T06:46:38.699355+00:00,auchan,777696,"Vin perlant rose sec Rose Verite, doza, 0.25 l",13.79,RON,,0,catalogue,1
+2026-08-12T06:46:38.700434+00:00,auchan,532764,"Vin rose demisec Beciul domnesc, 0.75 l",18.69,RON,24.93,1,catalogue,1
+2026-08-12T06:46:38.701342+00:00,auchan,455559,"Vin rose sec Domeniile Averesti, Magnum, 1.5 l",170.69,RON,,0,catalogue,1
+2026-08-12T06:46:38.701580+00:00,auchan,455558,"Vin rose demidulce Nativa, Busuioaca de Averesti 0.75 l",32.99,RON,47.19,1,catalogue,1
+2026-08-12T06:46:38.702545+00:00,auchan,226370,"Vin rose sec Domeniile Dealu Mare, Cabernet Sauvignon si Feteasca Neagra, 0.75 l",22.69,RON,34.99,1,catalogue,1
+2026-08-12T06:46:38.703781+00:00,auchan,777048,"Vin rose demisec Prahova Valley Feteasca Neagra, 0.75 l",27.29,RON,,0,catalogue,1
+2026-08-12T06:46:38.704653+00:00,auchan,741363,"Vin rose demisec Fautor Vie de Vis, Merlot si Cabernet Sauvignon, 0.75 l",35.99,RON,,0,catalogue,1
+2026-08-12T06:46:38.704737+00:00,auchan,729159,"Vin rose dulce Sange de Taur, 1.5 l",27.99,RON,,0,catalogue,1
+2026-08-12T06:46:38.706799+00:00,auchan,692389,"Vin rose demisec Varancha, 12% alcool, 0.75 l",16.99,RON,21.39,1,catalogue,1
+2026-08-12T06:46:38.713410+00:00,auchan,542725,"Vin rose sec Cramele Recas Muse Day, Merlot si Cabernet Sauvignon, 0.75 l",78.49,RON,,0,catalogue,1
+2026-08-12T06:46:38.714008+00:00,auchan,542671,"Vin ecologic rose demisec Domeniul Bogdan, 0.75 l",27.59,RON,34.59,1,catalogue,1
+2026-08-12T06:46:38.717643+00:00,auchan,490273,"Vin rose demisec Casa Panciu Cabernet Sauvignon, 0.75 l",21.29,RON,,0,catalogue,1
+2026-08-12T06:46:38.717869+00:00,auchan,490090,"Vin rose sec Caii de la Letea Volumul II, 0.75 l",45.69,RON,60.99,1,catalogue,1
+2026-08-12T06:46:38.720047+00:00,auchan,455665,"Vin rose sec Chateau Vartely, alcool 13.%, 0.187 l",15.99,RON,,0,catalogue,1
+2026-08-12T06:46:38.720304+00:00,auchan,455654,"Vin rose sec Chateau Vartely, Malbec si Syrah, 0.75 l",20.89,RON,32.29,1,catalogue,1
+2026-08-12T06:46:38.720401+00:00,auchan,455645,"Vin rose demisec Jidvei Weinland, Pinot Noir, Cabernet Sauvignon si Syrah, 0.75 l",21.49,RON,,0,catalogue,1
+2026-08-12T06:46:38.720490+00:00,auchan,455641,"Vin rose sec Jidvei Tezaur, Pinot Noir si Syrah, 0.75 l",42.49,RON,,0,catalogue,1
+2026-08-12T06:46:38.720792+00:00,auchan,455637,Vin rose sec Navigo Compas 13% 0.75 l,33.99,RON,,0,catalogue,1
+2026-08-12T06:46:38.721231+00:00,auchan,455624,Vin rose demisec Jidvei Nec Plus Ultra 0.75 l,34.89,RON,,0,catalogue,1
+2026-08-12T06:46:38.722394+00:00,auchan,455561,"Vin rose sec Busuioaca De Averesti 14%, 0.75 l",57.99,RON,83.49,1,catalogue,1
+2026-08-12T06:46:38.722624+00:00,auchan,455552,"Vin rose demidulce, Regala de Averesti 0.75 l",26.79,RON,,0,catalogue,1
+2026-08-12T06:46:38.722836+00:00,auchan,455551,Vin rose sec Regala de Averesti 0.75 l,21.49,RON,,0,catalogue,1
+2026-08-12T06:46:38.724684+00:00,auchan,454886,"Vin rose sec Cricova, Cabernet Sauvignon, 0.75 l",38.69,RON,,0,catalogue,1
+2026-08-12T06:46:38.725594+00:00,auchan,454843,"Vin rose demisec Vinarte, Merlot, Cabernet Sauvignon, Feteasca Neagra 0.75 l",22.39,RON,,0,catalogue,1
+2026-08-12T06:46:43.756284+00:00,auchan,455802,"Vin frizzante rose demidulce Zarea Bella Vita Lambrusco Emilia I.G.T., 0.75 l",29.99,RON,,0,catalogue,1
+2026-08-12T06:46:43.757592+00:00,auchan,455732,"Vin frizzante alb Zarea Bella Vita Lambrusco Emilia I.G.T., 0.75 l",29.99,RON,,0,catalogue,1
+2026-08-12T06:46:43.760445+00:00,auchan,455803,"Vin frizzante rosu Zarea Bella Vita Lambrusco Emilia I.G.T., 0.75 l",29.99,RON,,0,catalogue,1
+2026-08-12T06:46:43.763904+00:00,auchan,542728,"Vin spumant alb sec Cramele Recas Muse Stars, Mustoasa, 0.75 l",87.69,RON,,0,catalogue,1
+2026-08-12T06:46:43.764839+00:00,auchan,911483,"Vin spumant rose sec Cramele Recas Muse Stars, Pinot Noir, 0.75 l",87.69,RON,,0,catalogue,1
+2026-08-12T06:46:43.765264+00:00,auchan,741348,"Vin spumant alb dulce Gemma Di Luna, Moscato, 0.75 l",37.9,RON,54.19,1,catalogue,1
+2026-08-12T06:46:43.766981+00:00,auchan,546049,"Vin spumant rose sec Luc Belaire Rose, Syrah, Grenache si Cinsault, 0.75 l",180.89,RON,,0,catalogue,1
+2026-08-12T06:46:43.767258+00:00,auchan,546046,"Vin spumant alb sec Luc Belaire Gold, Chardonnay si Pinot Noir, 0.75 l",180.89,RON,,0,catalogue,1
+2026-08-12T06:46:43.768578+00:00,auchan,490264,"Vin spumant alb dulce Panciu Riserva, Muscat Ottonel 0.75 l",30.89,RON,38.69,1,catalogue,1
+2026-08-12T06:46:43.768644+00:00,auchan,490203,"Vin Spumant Casa Panciu Feteasca Regala & Muscat Ottonel Alb Demisec, 12.5%, 0.75 l",24.8,RON,35.49,1,catalogue,1
+2026-08-12T06:46:43.768904+00:00,auchan,490047,"Vin Spumant rose Freixenet, extra sec, 11% alcool, 0.7 l",53.89,RON,,0,catalogue,1
+2026-08-12T06:46:43.769814+00:00,auchan,489854,"Vin spumant rose sec Angelli, Rose de Noires 0.75 l",26.69,RON,,0,catalogue,1
+2026-08-12T06:46:43.770033+00:00,auchan,489850,"Vin spumant alb demisec Angelli, Blanc de Blancs 0.75 l",26.39,RON,,0,catalogue,1
+2026-08-12T06:46:43.770261+00:00,auchan,489800,Vin spumant alb dulce Torley Charmant 0.75 l,22.0,RON,31.79,1,catalogue,1
+2026-08-12T06:46:43.770726+00:00,auchan,489179,"Vin spumant rose Rhein, Pinot Noir 0.75 l",53.8,RON,67.29,1,catalogue,1
+2026-08-12T06:46:43.771250+00:00,auchan,457563,Vin spumant Cinzano GranDolce 0.75 l,43.79,RON,,0,catalogue,1
+2026-08-12T06:46:43.775324+00:00,auchan,253225,"Vin spumant alb brut Freixenet Cava Cordon Negro, 0.75 l",35.79,RON,47.79,1,catalogue,1
+2026-08-12T06:46:43.775442+00:00,auchan,151496,"Vin spumant rose demisec Freixenet Ice Rose Cuvee Especial Cava, 0.75 l",35.79,RON,47.79,1,catalogue,1
+2026-08-12T06:46:43.775683+00:00,auchan,151494,"Vin spumant alb demisec Freixenet Ice Cuvee Especial Cava, 0.75 l",35.79,RON,47.79,1,catalogue,1
+2026-08-12T06:46:46.238787+00:00,auchan,4950,"Vin alb demisec Val Duna, Cupaj Alb, 3 l, Bag in box",49.99,RON,,0,catalogue,1
+2026-08-12T06:46:46.239032+00:00,auchan,4725,Vin Alb demisec Val Duna Muscat Ottonel 3 l,49.99,RON,,0,catalogue,1
+2026-08-12T06:46:49.613312+00:00,auchan,455787,"Prosecco alb demisec Zarea Bella Vita D.O.C., 0.75 l",39.89,RON,49.99,1,catalogue,1
+2026-08-12T06:46:49.613539+00:00,auchan,291924,"Prosecco alb extra sec Costaross D.O.C, 0.75 l",23.99,RON,,0,catalogue,1
+2026-08-12T06:46:49.614318+00:00,auchan,455809,"Prosecco alb extra sec Zarea Bella Vita D.O.C., 0.75 l",39.89,RON,49.99,1,catalogue,1
+2026-08-12T06:46:49.614556+00:00,auchan,455733,"Prosecco rose extra sec Zarea Bella Vita D.O.C., 0.75 l",39.89,RON,49.99,1,catalogue,1
+2026-08-12T06:46:49.615140+00:00,auchan,489633,"Prosecco Maschio Treviso Extra Dry, 0.75 l",37.99,RON,45.16,1,catalogue,1
+2026-08-12T06:46:49.615368+00:00,auchan,489631,"Prosecco Rose Riunite D.O.C, 0.75 l",40.59,RON,,0,catalogue,1
+2026-08-12T06:46:49.615792+00:00,auchan,202700,"Prosecco alb brut Pasqua Romeo & Juliet, Glera, 0.75 l",39.89,RON,49.99,1,catalogue,1
+2026-08-12T06:46:49.617662+00:00,auchan,489858,"Prosecco alb extra sec Mionetto Valdobbiadene superiore docg, 0.75 l",49.99,RON,71.99,1,catalogue,1
+2026-08-12T06:46:49.617981+00:00,auchan,489636,"Prosecco Maschio Treviso D.O.C, 11% alcool, 0.75l",37.99,RON,45.16,1,catalogue,1
+2026-08-12T06:46:49.618331+00:00,auchan,489634,"Proseco rose Maschio Extra Dry, 0.75 l",37.99,RON,45.16,1,catalogue,1
+2026-08-12T06:46:49.618579+00:00,auchan,489628,"Prosecco White Riunite Frizzante Treviso D.O.C, extra sec, 0.75 l",38.99,RON,,0,catalogue,1
+2026-08-12T06:46:49.618665+00:00,auchan,489621,"Prosecco alb sec Riunite Treviso D.O.C, 11% alcool, 0.75 l",40.59,RON,,0,catalogue,1
+2026-08-12T06:46:49.620885+00:00,auchan,323064,"Prosecco extra sec Zonin Valdobbiadene Superiore DOCG, Glera, 0.75 l",73.99,RON,,0,catalogue,1
+2026-08-12T06:46:49.621246+00:00,auchan,202701,"Prosecco rose brut Pasqua Millesimato Romeo & Juliet, Glera si Pinot Noir, 0.75 l",41.3,RON,51.69,1,catalogue,1
+2026-08-12T06:47:06.044225+00:00,carrefour,10511632,"Tectonic Reserva - Cuvee Alb Doc Sec 0,75L",39.9,RON,,0,catalogue,1
+2026-08-12T06:47:06.045515+00:00,carrefour,10511631,"Tectonic - Cabernet Sauvignon & Syrah Doc Sec 0,75L",23.99,RON,,0,catalogue,1
+2026-08-12T06:47:06.046721+00:00,carrefour,10511636,"Premium White Blend Doc Cmd Cotesti, Sec 0,75L Petite Helena",114.99,RON,,0,catalogue,1
+2026-08-12T06:47:37.374327+00:00,carrefour,10509802,"Bianco Puglia Igt 2024 12,5% Amornero 0.75L",25.9,RON,,0,catalogue,1
+2026-08-12T06:47:52.550020+00:00,carrefour,10509738,"Vin Rosu Ungheni, Bridge, Merlot, Sec, 0.75l",32.49,RON,,0,catalogue,1
+2026-08-12T06:47:52.550340+00:00,carrefour,10509739,"Vin Alb Ungheni, Bridge, Chardonnay, Sec, 0.75l",32.49,RON,,0,catalogue,1
+2026-08-12T06:47:52.556014+00:00,carrefour,10005353,"Tata Si Fiul Rose 0.75L, sec",36.9,RON,,0,catalogue,1
+2026-08-12T06:47:52.556289+00:00,carrefour,10509747,"Vin Tamaioasa Roza, Vinarte, Sec, 0.75l",87.49,RON,,0,catalogue,1
+2026-08-12T06:48:16.066562+00:00,carrefour,10509138,"Zarea Ice Rose Vin Spumant, Demisec 0.75L",37.5,RON,,0,catalogue,1
+2026-08-12T06:48:50.258951+00:00,carrefour,10508736,"Vin Roze Demisec Metafora Cabernet Sauvignon 0,75L",24.49,RON,,0,catalogue,1
+2026-08-12T06:48:50.259605+00:00,carrefour,10508737,"Vin Alb Demisec Metafora Feteasca Regala 0,75L",24.49,RON,,0,catalogue,1
+2026-08-12T06:48:50.259893+00:00,carrefour,10005624,"Vin Alb Purcari, Traminer De Purcari, 0.75 L",59.49,RON,,0,catalogue,1
+2026-08-12T06:48:50.260550+00:00,carrefour,10508985,"Vin Spumant Caii de la Letea, Volumul I, Babeasca Neagra, Brut, 0.75l",44.35,RON,,0,catalogue,1
+2026-08-12T06:49:04.893446+00:00,carrefour,10005589,"Vin Rosu Cantina di Negrar Il Viaggio Apassimento Veneto IGT, Sec, 0.75l",66.79,RON,,0,catalogue,1
+2026-08-12T06:49:04.901071+00:00,carrefour,10005625,"Vin Rosu Purcari, Malbec, Sec, 0.75l",59.49,RON,,0,catalogue,1
+2026-08-12T06:49:40.967276+00:00,carrefour,10005736,"Vin rosu demisec Domeniile Vinju Mare Bucura, Feteasca Neagra, 0.75L",15.09,RON,,0,catalogue,1
+2026-08-12T06:50:12.084727+00:00,carrefour,10005800,"Vin Alb Schwaben Muscat Ottonel, Demidulce, 0.75l",19.9,RON,,0,catalogue,1
+2026-08-12T06:50:12.085009+00:00,carrefour,10005798,"Vin Alb Schwaben, Riesling Italian, Sec, 0.75l",19.9,RON,,0,catalogue,1
+2026-08-12T06:50:12.090345+00:00,carrefour,10005797,"Vin rosu Schwaben, Merlot, Demisec, 0.75l",19.9,RON,,0,catalogue,1
+2026-08-12T06:50:31.848234+00:00,carrefour,10005739,"Vin alb demidulce Domeniile Vinju Mare Bucura, Tamaioasa Romaneasca, 0.75L",15.09,RON,,0,catalogue,1
+2026-08-12T06:50:31.848566+00:00,carrefour,10005738,"Vin alb demisec Domeniile Vinju Mare Bucura, Sauvignon Blanc, 0.75L",15.09,RON,,0,catalogue,1
+2026-08-12T06:50:31.849240+00:00,carrefour,10005615,"Vin alb demidulce, Domeniile Recas Gewurtztraminer, Cramele Recas, 0.75 l",38.99,RON,,0,catalogue,1
+2026-08-12T06:50:46.042489+00:00,carrefour,10005252,"Vin rose demisec, Magnus Monte Ceptura, 0.75L",31.99,RON,,0,catalogue,1
+2026-08-12T06:50:46.043987+00:00,carrefour,10005407,"Vin spumant Purcari, Cuvee Alb, Brut, 0.75L",114.15,RON,,0,catalogue,1
+2026-08-12T06:50:46.047084+00:00,carrefour,10005770,"Vin Spumant, Angelli, Gran Dolce, 0.75l",29.5,RON,,0,catalogue,1
+2026-08-12T06:50:46.050609+00:00,carrefour,10005820,"Vin Spumant, Angelli Blanc de Blancs, Demisec, 0.75l",29.5,RON,,0,catalogue,1
+2026-08-12T06:50:46.051195+00:00,carrefour,10508296,"Vin spumant Zarea, Dulce Bella Vita Asti, Alb, 0.75L",54.9,RON,,0,catalogue,1
+2026-08-12T06:50:46.053225+00:00,carrefour,10005769,"Vin Spumant, Angelli Cuvee Imperial, Demisec, 0.75l",29.5,RON,,0,catalogue,1
+2026-08-12T06:50:58.199978+00:00,carrefour,10005239,Vin roze demidulce Schwaben 0.75L,19.9,RON,,0,catalogue,1
+2026-08-12T06:50:58.200246+00:00,carrefour,10005802,"Vin rosu Schwaben, Cabernet Sauvignon/ Pinot Noir, 0.75L",19.9,RON,,0,catalogue,1
+2026-08-12T06:50:58.201160+00:00,carrefour,10005799,Vin alb demisec Schwaben Feteasca Regala 0.75L,19.9,RON,,0,catalogue,1
+2026-08-12T06:50:58.201452+00:00,carrefour,10005254,Prosecco Mionetto Treviso D.O.C Brut 0.75L,47.99,RON,,0,catalogue,1
+2026-08-12T06:50:58.208174+00:00,carrefour,10005603,Vin alb Domeniile Prince Matei Rosturi 0.75L,35.49,RON,,0,catalogue,1
+2026-08-12T06:50:58.208490+00:00,carrefour,10005605,Vin rosu Domeniile Prince Matei Rosturi 0.75L,35.49,RON,,0,catalogue,1
+2026-08-12T06:50:58.209085+00:00,carrefour,10005604,Vin rose Domeniile Prince Matei Rosturi 0.75L,35.49,RON,,0,catalogue,1
+2026-08-12T06:50:58.209975+00:00,carrefour,10005568,"Vin rosu sec Domenille Davidescu Rara Neagra & Saperavi, 13.5%, 0.75 L",41.29,RON,,0,catalogue,1
+2026-08-12T06:51:10.504947+00:00,carrefour,10004994,"Vin Rosu Sange de Taur, Dulce, 0.75l",17.5,RON,,0,catalogue,1
+2026-08-12T06:51:25.060081+00:00,carrefour,10003337,"Vin rosu Serve Cuvee Guillaume, Sec, 0.75L",91.99,RON,,0,catalogue,1
+2026-08-12T06:51:37.442491+00:00,carrefour,10003131,"Vin rosu sec, Domeniile Samburesti Pinot Noir, 0.75L",38.69,RON,,0,catalogue,1
+2026-08-12T06:51:37.442890+00:00,carrefour,10003130,"Vin rosu sec, Domeniile Samburesti Feteasca Neagra, 0.75L",38.69,RON,,0,catalogue,1
+2026-08-12T06:51:37.443234+00:00,carrefour,10002902,"Vin rosu sec, Domeniile Samburesti Merlot, 0.75L",38.69,RON,,0,catalogue,1
+2026-08-12T06:51:37.454816+00:00,carrefour,10003258,Prosecco Zarea 0.75 L,49.99,RON,,0,catalogue,1
+2026-08-12T06:51:37.455066+00:00,carrefour,10003146,"Vin spumant alb Prosecco DOC Zarea, demisec, 0.75 L",49.99,RON,,0,catalogue,1
+2026-08-12T06:52:03.369132+00:00,carrefour,10004835,"Vin rosu sec, Prince Mircea Merlot Vinarte, 0.75L",58.49,RON,,0,catalogue,1
+2026-08-12T06:52:03.369449+00:00,carrefour,10003853,"Vin rosu sec, Prince Mircea Feteasca Neagra, 0.75L",58.49,RON,,0,catalogue,1
+2026-08-12T06:52:03.369742+00:00,carrefour,10003852,"Vin rosu sec, Prince Mircea Cabernet Sauvignon Vinarte, 0.75L",57.99,RON,,0,catalogue,1
+2026-08-12T06:52:03.375025+00:00,carrefour,10003204,"Vin alb sec, Budureasca Origini Oromanisa Cupaj, alcool 13.5%, 0.75L",90.75,RON,,0,catalogue,1
+2026-08-12T06:52:16.864216+00:00,carrefour,10002659,"Vin rose Zarea, Sange De Taur, Dulce, 0.75L",17.5,RON,,0,catalogue,1
+2026-08-12T06:52:16.864507+00:00,carrefour,10004105,"Vin rose Silvania Pinot Noir, 0.75l",32.99,RON,,0,catalogue,1
+2026-08-12T06:52:16.865483+00:00,carrefour,10003015,"Vin rose Jidvei Nec Plus Ultra, Demisec, 0.75l",36.69,RON,,0,catalogue,1
+2026-08-12T06:52:16.866049+00:00,carrefour,10003639,"Vin rose, Samburel De Olt, demisec, 0.75L",24.9,RON,,0,catalogue,1
+2026-08-12T06:52:16.869442+00:00,carrefour,10003925,"Vin rose sec, Roza de Samburesti, 0.75L",48.99,RON,,0,catalogue,1
+2026-08-12T06:52:16.870311+00:00,carrefour,10003027,"Vin rose sec, Domeniile Samburesti, 0.75L",38.69,RON,,0,catalogue,1
+2026-08-12T06:52:27.643628+00:00,carrefour,10002734,"Vin rosu sec, Domeniile Samburesti Cabernet Sauvignon, 0.75L",38.69,RON,,0,catalogue,1
+2026-08-12T06:52:49.666703+00:00,carrefour,10002938,"Vin alb Samburel De Olt, Sauvignon Blanc, demisec, 0.75L",24.9,RON,,0,catalogue,1
+2026-08-12T06:52:49.667095+00:00,carrefour,10002939,"Vin alb Samburel De Olt, Chardonnay, demisec, 0.75L",24.9,RON,,0,catalogue,1
+2026-08-12T06:52:49.673092+00:00,carrefour,10002735,"Vin alb, Domeniile Samburesti Sauvignon Blanc, 0.75L",38.69,RON,,0,catalogue,1
+2026-08-12T06:52:49.678033+00:00,carrefour,10002969,"Vin alb demisec, Budureasca Clasic Sauvignon Blanc, 0.75L",32.99,RON,,0,catalogue,1
+2026-08-12T06:53:03.951835+00:00,carrefour,10004976,"Vin Spumant Zarea Crystal Collection, Alb Demisec, 0.75l",34.9,RON,,0,catalogue,1
+2026-08-12T06:53:03.962687+00:00,carrefour,10003036,"Vin Spumant Alb Zarea Crystal Collection, Dulce, 0.75l",34.9,RON,,0,catalogue,1
+2026-08-12T06:53:15.293138+00:00,carrefour,10003254,"Vin spumant Alb Cricova Lacrima Dulce, Demisec 0.75l",33.99,RON,,0,catalogue,1
+2026-08-12T06:53:15.294752+00:00,carrefour,10003989,"Vin spumant Prosseco Zarea,11 % alc. 750 ml",53.49,RON,,0,catalogue,1
+2026-08-12T06:53:15.297687+00:00,carrefour,10002852,"Vin spumant alb, dulce, Silvania Premium lux, 0.75L",54.99,RON,,0,catalogue,1
+2026-08-12T06:53:49.114560+00:00,carrefour,10507316,Vin rosu demisec Domeniile Vinju Mare Merlot 2L,33.55,RON,,0,catalogue,1
+2026-08-12T06:53:49.115125+00:00,carrefour,10507318,"Vin alb Domeniile Vinju Mare Sauvignon Blanc, demisec, 2L",33.55,RON,,0,catalogue,1
+2026-08-12T06:53:49.116288+00:00,carrefour,10507315,Vin rose demisec Domeniile Vinju Mare Bag in Bag 2L,29.19,RON,,0,catalogue,1
+2026-08-12T06:53:52.156782+00:00,freshful,100169715,"Vin spumant Prosecco alb brut Treviso, 11%, 750ml",47.99,RON,,0,catalogue,1
+2026-08-12T06:53:53.474638+00:00,freshful,100171998,"Vin spumant dulce Asti D.O.C.G., 7.5%, 750ml",56.99,RON,,0,catalogue,1
+2026-08-12T06:53:54.658630+00:00,freshful,100171480,"Vin alb sec Livia Șarba D.O.C., 12%, 750ml",32.99,RON,,0,catalogue,1
+2026-08-12T06:53:57.433898+00:00,freshful,100171084,"Vin alb demisec Sauvignon Blanc, 13%, 750ml",25.49,RON,,0,catalogue,1
+2026-08-12T06:54:01.273611+00:00,freshful,100175752,"Vin rose sec Cabernet Sauvignon, Pinot Noir & Syrah, 12.5%, 750ml",64.49,RON,,0,catalogue,1
+2026-08-12T06:54:10.677945+00:00,freshful,100217409,"Vin alb sec Origin Fetească Albă, 12%, 750ml",85.62,RON,,0,catalogue,1
+2026-08-12T06:54:10.678189+00:00,freshful,100217410,"Vin roșu sec Origin Fetească Neagră, 13.5%, 750ml",85.62,RON,,0,catalogue,1
+2026-08-12T06:54:10.678689+00:00,freshful,100217412,"Vin alb sec Projekt Rhein Riesling, 12%, 750ml",85.62,RON,,0,catalogue,1
+2026-08-12T06:54:10.680057+00:00,freshful,100217710,"Vin rose dulce Desert, 10.5%, 500ml",58.8,RON,,0,catalogue,1
+2026-08-12T06:54:10.680288+00:00,freshful,100217722,"Vin rose sec Rose Cosmina, 13.5%, 750ml",62.44,RON,,0,catalogue,1
+2026-08-12T06:54:10.680518+00:00,freshful,100217723,"Vin alb sec Sauvignon Blanc Madame S., 13.35%, 750ml",72.05,RON,,0,catalogue,1
+2026-08-12T06:54:10.680771+00:00,freshful,100217724,"Vin alb sec Cuvee Alexandra, 13%, 750ml",81.67,RON,,0,catalogue,1
+2026-08-12T06:54:10.681733+00:00,freshful,100171336,"Vin roșu sec Quintessence II, 14%, 750ml",59.99,RON,,0,catalogue,0
+2026-08-12T06:54:10.682633+00:00,freshful,100172771,"Vin rose demisec, 11.5%, 750ml",20.49,RON,,0,catalogue,0
+2026-08-12T06:54:11.773161+00:00,kaufland,00061252,Varancha Vin alb / roşu sec,32.99,RON,39.99,1,promo,
+2026-08-12T06:54:11.773457+00:00,kaufland,20728012,"Fetească de Tohani Vin rose sec 0,75 l",28.99,RON,37.99,1,promo,
+2026-08-12T06:54:11.774326+00:00,kaufland,20677101,Beciul Domnesc Vin roșu / alb / rosé,29.99,RON,34.99,1,promo,
+2026-08-12T06:54:11.775860+00:00,kaufland,20677277,Euforia Vin alb / roșu / rosé,34.99,RON,39.99,1,promo,
+2026-08-12T06:54:11.776154+00:00,kaufland,20677083,Martini Prosecco / Prosecco rosé,34.99,RON,44.99,1,promo,
+2026-08-12T06:54:11.776457+00:00,kaufland,20677015,"Mionetto Prosecco Rose 0,75 l",39.99,RON,49.99,1,promo,
+2026-08-12T06:54:11.777330+00:00,kaufland,00168989,Cape Buffalo Vin alb sec 3 l,29.99,RON,34.99,1,promo,
+2026-08-12T06:54:11.778195+00:00,kaufland,20875493,Pasqua Desire Lush&Zin Primitivo Puglia Vin roșu sec,44.99,RON,52.99,1,promo,
+2026-08-12T06:54:11.778961+00:00,kaufland,20677696,"Tectonic Vin rosé sec 0,75 l",29.99,RON,37.99,1,promo,
+2026-08-12T06:54:11.852562+00:00,kaufland,20901140,El Carisma Vin roșu,15.0,RON,21.99,1,promo,
+2026-08-12T06:54:11.852842+00:00,kaufland,20679664,Voscarini Vin roșu sec,15.0,RON,19.99,1,promo,
+2026-08-12T06:54:11.857386+00:00,kaufland,20740449,Escapade Vin rosé demisec,25.89,RON,36.99,1,promo,
+2026-08-12T06:54:13.619629+00:00,kaufland_bolt,20770258,SALENTEIN PORTILLO SV BL SEC 12.5%0.75LS,64.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.620399+00:00,kaufland_bolt,20678037,V CAVALERULUI SAUV BL SEC 13% 0.75L,28.49,RON,,0,catalogue,1
+2026-08-12T06:54:13.620838+00:00,kaufland_bolt,20678086,MOSIA TOHANI SAUV BL SEC12% DOC 0.75LS,28.55,RON,,0,catalogue,1
+2026-08-12T06:54:13.633115+00:00,kaufland_bolt,20278018,EL CARISMA AIREN ALB 10% 3L BIB,26.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.642958+00:00,kaufland_bolt,20678076,DOM TOHANI FET.REGALA DMS 12.5% 0.75L,18.89,RON,,0,catalogue,1
+2026-08-12T06:54:13.655211+00:00,kaufland_bolt,00063744,VIGNE NOBILE VIN ALB 10.5% SEC 5L,49.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.670060+00:00,kaufland_bolt,20678081,MOSIA TOHANI BUS MER DMD 11.5% DOC0.75LS,28.55,RON,,0,catalogue,1
+2026-08-12T06:54:13.673330+00:00,kaufland_bolt,20677496,DOM BLAGA PELIN ROSE DMD 13.9% 0.75L,28.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.675846+00:00,kaufland_bolt,20679315,ROSTURI ROSE SEC 13% 0.75L,35.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.676044+00:00,kaufland_bolt,00025908,BUDUREASCA ROSE DMS 13% 2L BIB,51.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.676259+00:00,kaufland_bolt,00159356,CERVUS CEPTURUM ROSE DMS 13% 3L BIB,40.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.686487+00:00,kaufland_bolt,00063750,VIGNE NOBILE VIN ROZE 10.5% SEC 5L,49.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.694114+00:00,kaufland_bolt,20677632,ANNO MERLOT 12L SEC 14% 0.75L,69.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.705157+00:00,kaufland_bolt,20678247,ALIRA CAB SAUV 18L SEC 14% 0.75L,48.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.715684+00:00,kaufland_bolt,00025911,BUDUREASCA CAB SAUV SEC 14% 2L BIB,51.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.718884+00:00,kaufland_bolt,20677339,SANGELE URSULUI ROSU DLC 12.5% 0.75L,13.29,RON,,0,catalogue,1
+2026-08-12T06:54:13.719608+00:00,kaufland_bolt,20677200,BUDUREASCA FET NEAGRA DMS 14%0.75L,32.99,RON,,0,catalogue,1
+2026-08-12T06:54:13.722125+00:00,kaufland_bolt,20678240,W.P. FET N&CADARCA SEC 13.5% 0.75L,55.49,RON,,0,catalogue,1
+2026-08-12T06:54:13.753599+00:00,kaufland_bolt,20677945,GARRONE ASTI SPUMANT DULCE 7.5% 0.75L,39.69,RON,,0,catalogue,1
+2026-08-12T06:54:13.765774+00:00,kaufland_bolt,20677420,TAITTINGER CHAMPAGNE BRUT 12.5% 0.375LSG,191.9,RON,,0,catalogue,1
+2026-08-12T06:54:24.429266+00:00,mega_image,42886,Vin rosu demisec Feteasca Neagra & Merlot 750ml,15.79,RON,,0,catalogue,1
+2026-08-12T06:54:24.430825+00:00,mega_image,43206,Vin Busuioaca de Bohotin 0.75L,14.99,RON,,0,catalogue,1
+2026-08-12T06:54:24.432001+00:00,mega_image,41813,Vin alb sec Chardonnay de Purcari 0.75L,38.39,RON,,0,catalogue,1
+2026-08-12T06:54:24.432432+00:00,mega_image,41830,Prosecco DOC Treviso Orange 0.75L,47.99,RON,,0,catalogue,1
+2026-08-12T06:54:24.433275+00:00,mega_image,43226,Vin alb sec Chardonnay 0.75L,33.19,RON,,0,catalogue,1
+2026-08-12T06:54:24.433640+00:00,mega_image,41823,Vin roze sec 0.75L,40.19,RON,,0,catalogue,1
+2026-08-12T06:54:24.434218+00:00,mega_image,42813,Vin alb sec Pinot Grigio de Purcari 0.75L,38.39,RON,,0,catalogue,1
+2026-08-12T06:54:24.434434+00:00,mega_image,42723,Vin alb sec Sauvignon Blanc 0.75L,38.39,RON,,0,catalogue,1
+2026-08-12T06:54:25.452149+00:00,mega_image,43861,Vin alb demidulce 1.5L,24.19,RON,,0,catalogue,1
+2026-08-12T06:54:25.452689+00:00,mega_image,58449,Spumant roze brut Rara Neagra 0.75L,41.49,RON,,0,catalogue,1
+2026-08-12T06:54:25.453082+00:00,mega_image,43351,Vin rose demisec Sorginte 0.75L,45.09,RON,,0,catalogue,1
+2026-08-12T06:54:25.454516+00:00,mega_image,43326,Vin rose demidulce Busuioaca & Merlot 0.75L,29.69,RON,,0,catalogue,1
+2026-08-12T06:54:25.459022+00:00,mega_image,43361,"Vin rosu sec Cabernet Sauvignon, Feteasca Neagra 0.75L",44.29,RON,,0,catalogue,1
+2026-08-12T06:54:25.924880+00:00,mega_image,43054,Vin alb sec Chardonnay 0.75L,24.49,RON,,0,catalogue,1
+2026-08-12T06:54:25.926263+00:00,mega_image,42661,Vin spumant dulce 0.75L,43.89,RON,,0,catalogue,1
+2026-08-12T06:54:25.927038+00:00,mega_image,57117,Vin rosu sec 0.75L,42.49,RON,,0,catalogue,1
+2026-08-12T06:54:25.929469+00:00,mega_image,43778,Vin alb sec Sauvignon Blanc Chardonnay 0.75L,44.99,RON,,0,catalogue,1
+2026-08-12T06:54:25.930821+00:00,mega_image,2976,Vin spumant alb demisec 0.75L,28.99,RON,,0,catalogue,1
+2026-08-12T06:54:26.342354+00:00,mega_image,57119,Vin rose sec 750ml,39.09,RON,,0,catalogue,1
+2026-08-12T06:54:26.342531+00:00,mega_image,57116,Vin alb sec 750ml,40.89,RON,,0,catalogue,1
+2026-08-12T06:54:26.348230+00:00,mega_image,6311,Vin alb sec Galbena de Odobesti 0.75L,29.79,RON,,0,catalogue,1
+2026-08-12T06:54:26.650167+00:00,mega_image,42540,Vin alb sec Riesling Italian 0.75L,20.19,RON,,0,catalogue,1
+2026-08-12T06:54:26.651214+00:00,mega_image,45692,Vin roze demisec Busuioaca de Bohotin 0.75L,57.79,RON,,0,catalogue,1
+2026-08-12T06:54:26.651770+00:00,mega_image,14021,Vin alb demisec Tamaioasa Romaneasca 0.75L,20.99,RON,,0,catalogue,1
+2026-08-12T06:54:26.651970+00:00,mega_image,42900,Vin alb sec Sauvignon Blanc 0.75L,25.49,RON,,0,catalogue,1
+2026-08-12T06:54:26.652900+00:00,mega_image,57570,Vin alb sec Traminer 0.75L,59.69,RON,,0,catalogue,1
+2026-08-12T06:54:39.485571+00:00,metro,BTY-X794741,"JIDVEI TEZAUR Sauvignon Blanc & Feteasca Regala Sec SGR 0,75 L",34.11,RON,,0,catalogue,1
+2026-08-12T06:54:39.526567+00:00,metro,BTY-X824127,"KAIKOURA BAY Sauvignon Blanc Vin Alb Sec SGR 0,75 L",28.51,RON,,0,catalogue,0
+2026-08-12T06:54:39.527518+00:00,metro,BTY-X817570,"PORTA NOVA Vin Alb Sec SGR 0,75 L",37.0,RON,,0,catalogue,0
+2026-08-12T06:54:51.002353+00:00,metro,BTY-X809040,"DOMENIUL COROANEI SEGARCEA Elite Cabernet Sauvignon Vin Rosu Sec SGR 0,75 L",28.53,RON,,0,catalogue,1
+2026-08-12T06:54:51.020814+00:00,metro,BTY-X823584,"PURCARI 1827 Saperavi Vin Rosu Sec SGR 0,75 L",49.9,RON,,0,catalogue,1
+2026-08-12T06:54:51.027504+00:00,metro,BTY-X822832,"STIRBEY Novac Vin Rosu Sec SGR 0,75 L",125.01,RON,,0,catalogue,0
+2026-08-12T06:54:57.242063+00:00,metro,BTY-X805502,"MINUTY M Vin Rose Sec SGR 0,75 L",90.0,RON,,0,catalogue,1
+2026-08-12T06:55:04.106624+00:00,metro,BTY-X797403,"LOUIS ROEDERER Gift Vin Spumant SGR 0,75 L",295.0,RON,,0,catalogue,0
+2026-08-12T06:55:07.402305+00:00,penny_bolt,RR-964094,Zarea Prosecco 750 ml 11% alc,49.99,RON,,0,catalogue,1
+2026-08-12T06:55:07.403400+00:00,penny_bolt,RR-964093,Zarea Lambrusco Vin rose 7.5% alc. 750 ml,21.99,RON,,0,catalogue,1
+2026-08-12T06:55:07.410999+00:00,penny_bolt,RR-964081,Caii de la Letea vol.1 Vin roze sec 750 ml,30.3,RON,,0,catalogue,1
+2026-08-12T06:55:07.411846+00:00,penny_bolt,RR-964417,Schwaben Wein vin roze demidulce 750 ml,14.55,RON,,0,catalogue,1
+2026-08-12T06:55:07.412450+00:00,penny_bolt,RR-965647,Pelin Carpatin vin rose 750 ml,13.48,RON,,0,catalogue,1
+2026-08-12T06:55:07.412659+00:00,penny_bolt,RR-963893,Budureasca Vin rose dms 750 ml,26.39,RON,,0,catalogue,1
+2026-08-12T06:55:07.412858+00:00,penny_bolt,RR-990194,"Aerosoli Feteasca neagra & Pinot noir vin roze sec 12,5% alc. 750 ml",31.99,RON,,0,catalogue,1
+2026-08-12T06:55:07.413126+00:00,penny_bolt,RR-989716,Colinele nobile vin rose demisec 750 ml,7.75,RON,,0,catalogue,1
+2026-08-12T06:55:07.413338+00:00,penny_bolt,RR-964076,Domeniile Samburesti Vin rose sec 750 ml,25.51,RON,,0,catalogue,1
+2026-08-12T06:55:07.413554+00:00,penny_bolt,RR-963999,Jidvei Grigorescu Vin roze demisec 750 ml,20.79,RON,,0,catalogue,1
+2026-08-12T06:55:07.416522+00:00,penny_bolt,RR-969755,Mateus Vin rose 11% alc. 750 ml,20.79,RON,,0,catalogue,1
+2026-08-12T06:55:07.416734+00:00,penny_bolt,RR-964091,Sange de taur Vin rose dulce 750 ml,12.15,RON,,0,catalogue,1
+2026-08-12T06:55:07.418051+00:00,penny_bolt,RR-964090,Sange de taur Vin rosu dulce 750 ml,12.15,RON,,0,catalogue,1
+2026-08-12T06:55:08.676711+00:00,profi_glovo,093918-000,Jidvei Grigorescu Muscat Dry Vin Alb Demisec 0.75L,26.99,RON,,0,catalogue,
+2026-08-12T06:55:08.677461+00:00,profi_glovo,093913-000,"Feteasca Regala 0,750 Lit - Doc Demisec",21.49,RON,,0,catalogue,
+2026-08-12T06:55:08.681911+00:00,profi_glovo,093754-000,Livia Sarba Vin Alb Sec 0.75L,31.49,RON,,0,catalogue,
+2026-08-12T06:55:12.138035+00:00,profi_glovo,093590-000,Zarea Crystal Spumant Demisec 0.75L,29.99,RON,,0,catalogue,
+2026-08-12T06:55:32.005515+00:00,selgros,119814,"DOMENIILE AVERESTI NATIVUS ZGHIHARA ALB SEC 0,75",42.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.010742+00:00,selgros,22518,"SCEPTRUS CHARDONNAY&SAUVIGNON BLANC FUME ALB SEC 0,75",39.64,RON,,0,catalogue,1
+2026-08-12T06:55:32.013274+00:00,selgros,609876,"DOMENIILE URLATI VIN ALB DRY MUSCAT DS 0,75",23.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.015283+00:00,selgros,631489,"EXPLICIT SAUVIGNON BLANC SEC 0,375",19.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.015498+00:00,selgros,87366,"BUDUREASCA CLASIC FUME ALB DEMISEC 0,75",31.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.016653+00:00,selgros,977022,"ALAI CHARDONNAY ALB DEMISEC 0,75",25.41,RON,,0,catalogue,1
+2026-08-12T06:55:32.016858+00:00,selgros,834962,"BECIUL DOMNESC SAUVIGNON BLANC DEMISEC 0,187",10.15,RON,,0,catalogue,1
+2026-08-12T06:55:32.035382+00:00,selgros,104373,"DOMENIILE AVERESTI NATIVUS SAUVIGNON BLANC SEC 0,75",42.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.047711+00:00,selgros,301358,"BECIUL DOMNESC SAUVIGNON BLANC DEMISEC 0,75",24.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.067576+00:00,selgros,818647,"DOMENIILE AVERESTI VIN ALB DE HUSI DEMIDULCE 3,0",38.08,RON,47.0,1,catalogue,0
+2026-08-12T06:55:32.071719+00:00,selgros,924206,"DOMENIILE AVERESTI NATIVUS CUVEE ALB DEMISEC 0,75",42.99,RON,,0,catalogue,1
+2026-08-12T06:55:32.086092+00:00,selgros,249343,"BACANTA SARBA ALB SEC 0,75",79.98,RON,,0,catalogue,1
+2026-08-12T06:55:35.139088+00:00,selgros,189055,"SARICA ESSENTIA 4 SFINTI CUVEE ROSU SEC 0,75",14.13,RON,17.9,1,catalogue,0
+2026-08-12T06:55:35.140660+00:00,selgros,297100,"TOHANI DOMENII PINOT NOIR ROSU DEMIDULCE 0,75",20.33,RON,,0,catalogue,1
+2026-08-12T06:55:36.973144+00:00,selgros,251308,"DOMENIILE AVERESTI NATIVUS MERLOT ROSE SEC 0,75",42.99,RON,,0,catalogue,1
+2026-08-12T06:55:36.990268+00:00,selgros,280156,"DOMENIILE AVERESTI NATIVUS BUSUIOACA ROSE DD 0,75",42.99,RON,,0,catalogue,1
+2026-08-12T06:55:36.996123+00:00,selgros,1013626,"VAL DUNA BLANC DE ROUMANIE DEMISEC 10,0",110.84,RON,,0,catalogue,1
+2026-08-12T06:55:36.996360+00:00,selgros,136251,"VILLA VINEA CLASSIC KERNER PINOT NOIR ROSE SEC 0,75",42.99,RON,,0,catalogue,0
+2026-08-12T06:55:37.008656+00:00,selgros,179542,"DOM.AVERESTI DIAMOND MAGNUM BUSUIOACA ROSE SEC 1,5",129.99,RON,,0,catalogue,1
+2026-08-12T06:55:37.011249+00:00,selgros,25982,"C`EST SOIR FETEASCA NEAGRA ROSE SEC 0,75",54.99,RON,,0,catalogue,1
+2026-08-12T06:55:37.011945+00:00,selgros,235964,"DOMENIILE SAMBURESTI ROSE SEC 0,75",33.99,RON,,0,catalogue,1
+2026-08-12T06:55:37.015309+00:00,selgros,943943,"DOMENIILE AVERESTI ROZE AROMAT DE HUSI DEMISEC 3,0",49.99,RON,,0,catalogue,1
+2026-08-12T06:55:38.502804+00:00,selgros,44443,"HENRI MARCEL SPUMANT ALB DEMISEC 0,75",19.99,RON,,0,catalogue,1
+2026-08-12T06:55:38.503601+00:00,selgros,494906,"VEZZO BLANC DE BLANCS BRUT 0,75",37.98,RON,,0,catalogue,1
+2026-08-12T06:55:38.516081+00:00,selgros,188927,"FREIX.CARTA NEV.DS0,75",32.09,RON,45.02,1,catalogue,0
+2026-08-12T06:55:38.517342+00:00,selgros,203086,"MIONETTO PROSECCO TREVISO DOC ORANGE PRESTIGE ALB S 1,5",120.0,RON,,0,catalogue,1
+2026-08-12T06:55:38.524656+00:00,selgros,219774,"GRANDE VENTO PROSECCO ALB EXTRA DRY 0,75",43.79,RON,,0,catalogue,1
+2026-08-12T06:55:39.637145+00:00,selgros,184473,"BANFI CHIANTI DOCG ROSU SEC 0,75",81.34,RON,,0,catalogue,1
+2026-08-12T06:55:39.637374+00:00,selgros,200753,"VARTELY INDIVIDO LTD RARA NEAGRA ROSU SEC 0,75",39.93,RON,49.92,1,catalogue,0
+2026-08-12T06:55:39.637820+00:00,selgros,68841,"CECCHI CHIANTI CLASSICO STORIA FAMILIA DOCG ROSU SEC 0,75",82.24,RON,,0,catalogue,0
+2026-08-12T06:55:39.658189+00:00,selgros,475311,"FLORIO MARSALA VECCHIO DOLCE 18% 0,75(VIN DESERT)",71.16,RON,,0,catalogue,1
+2026-08-12T06:55:41.497174+00:00,selgros,64212,"RHEIN EXTRA VIN SPUMANT ALB BRUT 0,75",63.98,RON,,0,catalogue,1
+2026-08-12T06:55:41.497396+00:00,selgros,295899,"CARASTELEC CARASSIA SPUMANT ROSE BRUT 0,75",121.0,RON,,0,catalogue,1
+2026-08-12T06:55:41.497615+00:00,selgros,194215,"ANGELLI VIN SPUMANT ROSE DEMISEC 0,75",27.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.099791+00:00,sezamo,4133,Caloian Vin alb sec Sauvignon Blanc,26.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.115478+00:00,sezamo,41673,Tectonic Sauvignon Blanc & Chardonnay Fume DOC CMD Cotesti Vin alb sec,37.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.115730+00:00,sezamo,28624,Tectonic Vin alb demisec Tamaioasa Romaneasca DOC,37.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.150835+00:00,sezamo,21907,Prince Mircea Vin rosu sec Merlot,61.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.152692+00:00,sezamo,21909,Prince Mircea Vin rosu sec Cabernet Sauvignon,61.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.162953+00:00,sezamo,10886,Crama Bratu Vin alb demisec Muscat Ottonel Bag-in-Box,71.99,RON,,0,catalogue,1
+2026-08-12T06:56:01.202588+00:00,sezamo,25095,Serafim Vin alb sec Feteasca Regala,37.29,RON,,0,catalogue,0
+2026-08-12T06:56:02.242403+00:00,supeco_glovo,10004878,Traditional Feteasca Regala,17.39,RON,,0,catalogue,
+2026-08-12T06:56:02.242755+00:00,supeco_glovo,10004823,Grigorescu Dry Muscat,22.99,RON,,0,catalogue,
+2026-08-12T06:56:02.242966+00:00,supeco_glovo,10004880,Grigorescu Gewurztraminer',22.99,RON,,0,catalogue,
+2026-08-12T06:56:02.243159+00:00,supeco_glovo,10004820,Traditional Riesling,17.88,RON,,0,catalogue,
+2026-08-12T06:56:02.243394+00:00,supeco_glovo,10004876,Traditional Feteasca Alba,17.39,RON,,0,catalogue,
+2026-08-12T06:56:02.248590+00:00,supeco_glovo,10004594,Vin Alb Demisec Alai Sauvignon Blanc 0.75L,20.49,RON,,0,catalogue,
+2026-08-12T06:56:05.736832+00:00,supeco_glovo,10003428,Traditional Roze Demidulce,19.49,RON,,0,catalogue,
+2026-08-12T06:56:06.859422+00:00,supeco_glovo,10005254,Prosecco D.O.C Treviso Brut 0.75l Mionetto Orange,45.49,RON,,0,catalogue,
