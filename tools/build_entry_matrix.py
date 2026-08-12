@@ -41,6 +41,7 @@ STORES = {
     "profi_glovo": "Profi (Glovo)", "auchan": "Auchan", "penny": "Penny",
     "freshful": "Freshful", "mega_image": "Mega Image", "sezamo": "Sezamo",
     "supeco_glovo": "Supeco (Glovo)", "kaufland": "Kaufland (pliant)",
+    "froo": "Froo (raft)",
 }
 
 # Brands each shop writes its own way. Merging them is an assertion — the data

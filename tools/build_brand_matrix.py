@@ -35,6 +35,7 @@ STORES = {
     "profi_glovo": "Profi (Glovo)", "auchan": "Auchan", "penny": "Penny",
     "freshful": "Freshful", "mega_image": "Mega Image", "sezamo": "Sezamo",
     "supeco_glovo": "Supeco (Glovo)", "kaufland": "Kaufland (pliant)",
+    "froo": "Froo (raft)",
     # No catalogue of our own; present only through the shelf audit.
     "lidl": "Lidl",
 }
