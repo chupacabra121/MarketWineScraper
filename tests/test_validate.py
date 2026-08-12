@@ -7,7 +7,10 @@ def row(**kw):
     base = dict(retailer="testmart", external_id="1", name="Vin rosu sec 0.75L",
                 price=40.0, volume_l=0.75, category_path="Vinuri/Vin rosu",
                 colour="rosu", sweetness="sec", grape_varieties="Merlot", abv=13.0,
-                unit_price=None, unit_price_unit=None)
+                unit_price=None, unit_price_unit=None,
+                # Every stored observation carries one; a row without it is
+                # what "deposit unknown" is there to catch.
+                deposit=0.50)
     base.update(kw)
     return base
 

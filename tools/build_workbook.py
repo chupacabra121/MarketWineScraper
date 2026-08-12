@@ -12,6 +12,7 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from winescraper import pricing
+from winescraper.storage import CURRENT_DAY_JOIN
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -37,14 +38,14 @@ PRICE_BASIS = {
     "selgros": ("Own site", "Shelf", "Cash & carry; price is per depot."),
     "metro": ("Own site", "Shelf", "Cash & carry; VAT-incl, deposit excl. 6-bottle minimum common."),
     "freshful": ("Own site", "Shelf", "Online-only retailer; shelf price (Genius price in raw)."),
-    "sezamo": ("Own site", "Shelf", "Online-only retailer."),
+    "sezamo": ("Own site", "Shelf", "Online-only; deposit basis unproven, SGR left off."),
     "mega_image": ("Own site", "Shelf", "Retailer's own e-commerce price."),
     "penny": ("Own site", "Shelf", "Shelf price; PENNY-card price held separately."),
     "kaufland": ("Own site", "Promo only", "Weekly leaflet; promotional wines only."),
     "kaufland_bolt": ("Bolt Food", "Platform", "Delivery platform price; at or above shelf."),
     "penny_bolt": ("Bolt Food", "Platform", "Measured = shelf (median +0.0% vs penny.ro)."),
-    "profi_glovo": ("Glovo", "Platform", "Includes 0.50 lei SGR deposit."),
-    "supeco_glovo": ("Glovo", "Platform", "Includes 0.50 lei SGR deposit."),
+    "profi_glovo": ("Glovo", "Platform", "Deposit excl., as the Aug 2026 shelf audit confirms."),
+    "supeco_glovo": ("Glovo", "Platform", "Deposit basis unproven; SGR left off this source."),
 }
 
 LABELS = {
@@ -88,11 +89,13 @@ def load_rows():
     conn.row_factory = sqlite3.Row
     sql = """
     SELECT p.*, o.price, o.currency, o.list_price, o.unit_price, o.price_per_litre,
-           o.on_promotion, o.offer_type, o.in_stock AS obs_stock, o.observed_at
+           o.on_promotion, o.offer_type, o.in_stock AS obs_stock, o.deposit,
+           o.observed_at
     FROM products p
     JOIN price_observations o ON o.id = (
         SELECT id FROM price_observations WHERE product_id = p.id
         ORDER BY observed_at DESC, id DESC LIMIT 1)
+    """ + CURRENT_DAY_JOIN + """
     ORDER BY p.retailer, p.name
     """
     rows = [dict(r) for r in conn.execute(sql)]
@@ -129,9 +132,14 @@ HEADERS = [
     ("Product Name", 52), ("Wine Key", 46), ("Brand", 20), ("Producer", 20),
     # The regular price leads, because that is the series an analysis of
     # shelf prices wants; the discount sits beside it rather than inside it.
-    ("List Price (RON)", 14), ("Discount Price (RON)", 16),
-    ("List Price per Litre (RON)", 20), ("Discount %", 10),
-    ("Price Paid (RON)", 14), ("Price Paid per Litre (RON)", 21),
+    # Every price here is what a shopper hands over, SGR deposit included; the
+    # deposit and the price without it follow, so a figure can still be checked
+    # against the shop's own page.
+    ("List Price (RON, incl. SGR)", 18), ("Discount Price (RON, incl. SGR)", 20),
+    ("List Price per Litre (RON, incl. SGR)", 24), ("Discount %", 10),
+    ("Price Paid (RON, incl. SGR)", 18),
+    ("Price Paid per Litre (RON, incl. SGR)", 25),
+    ("SGR Deposit (RON)", 13), ("Shelf Price excl. SGR (RON)", 20),
     ("Volume (L)", 10), ("Price Band", 13),
     ("Colour", 9), ("Sweetness", 11), ("Sparkling", 10),
     ("ABV %", 8), ("Vintage", 8), ("Country", 16), ("Romanian?", 10),
@@ -164,6 +172,7 @@ def build_data_sheet(wb, rows):
             pricing.discount_share(r),
             pricing.paid(r),
             pricing.per_litre(pricing.paid(r), r.get("volume_l")),
+            pricing.deposit_on(r), pricing.published_regular(r),
             r.get("volume_l"),
             None,                     # Price Band — filled below
             r.get("colour"), r.get("sweetness"),
@@ -219,9 +228,12 @@ def build_data_sheet(wb, rows):
     # Normal style so we never touch 200k cells individually.
     money = '#,##0.00'
     formats = {
-        "List Price (RON)": money, "Discount Price (RON)": money,
-        "List Price per Litre (RON)": money, "Price Paid (RON)": money,
-        "Price Paid per Litre (RON)": money,
+        "List Price (RON, incl. SGR)": money,
+        "Discount Price (RON, incl. SGR)": money,
+        "List Price per Litre (RON, incl. SGR)": money,
+        "Price Paid (RON, incl. SGR)": money,
+        "Price Paid per Litre (RON, incl. SGR)": money,
+        "SGR Deposit (RON)": money, "Shelf Price excl. SGR (RON)": money,
         "Discount %": '0.0%', "Volume (L)": '0.000', "ABV %": '0.0',
     }
     for header, fmt in formats.items():
@@ -295,6 +307,15 @@ def build_readme(wb, rows, retailers, n_rows):
                            "that publishes no former price — Kaufland's leaflet is promotions "
                            "only — so those have no List Price rather than being given their "
                            "discount price."),
+        ("  SGR deposit", "Romania charges a refundable 0.50 lei deposit on every bottle and PET "
+                          "of 0.1-3 litres; bag-in-box is exempt. Almost every retailer quotes "
+                          "its price without it, so all four price columns above add it back — "
+                          "they are what a shopper hands over at the till. 'SGR Deposit' shows "
+                          "the amount added and 'Shelf Price excl. SGR' the figure the shop "
+                          "publishes, which is what to compare against its own page. Sezamo and "
+                          "Supeco (Glovo) are the exception: neither states a deposit and neither "
+                          "could be measured against the August 2026 shelf audit, so no deposit "
+                          "is added to them and their prices may sit 0.50 low."),
         ("  Price per litre", "The comparable figure across bottle sizes, given for both the list "
                               "price and the price paid. Price Band uses the list price, so a "
                               "wine does not change band for the week it is on offer."),

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from . import deposit
 from .models import WineProduct
 
 SCHEMA = """
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS price_observations (
     on_promotion    INTEGER,
     offer_type      TEXT,
     in_stock        INTEGER,
+    deposit         REAL,
     run_id          INTEGER REFERENCES runs(id)
 );
 
@@ -78,10 +80,40 @@ _MIGRATIONS = [
     # name off `products` at export time rewrote the past to match the present.
     ("price_observations", "name",
      "ALTER TABLE price_observations ADD COLUMN name TEXT"),
+    # The SGR deposit owed on top of `price` to reach what a shopper hands over.
+    # Stored per observation rather than derived on read, because both inputs
+    # move: a retailer can start folding the deposit into its price, and the
+    # deposit itself is a number the state can change.
+    ("price_observations", "deposit",
+     "ALTER TABLE price_observations ADD COLUMN deposit REAL"),
 ]
 _MIGRATION_INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_products_wine_key ON products(wine_key)",
 )
+
+#: Restricts a query over ``products p`` to the listings still on sale.
+#:
+#: The cut-off is the last day a *run* saw the retailer, not simply the newest
+#: date on any of its products: importing the price series creates products from
+#: observations alone, and a handful of those carrying a later date used to
+#: redefine "today" for the whole retailer — 6,750 current listings collapsed to
+#: 1,475. A retailer with nothing scraped yet has nothing to delist against, so
+#: it falls back to the newest date it does have.
+#:
+#: Shared so the reporting tools, which open the database read-only and cannot
+#: call :meth:`Store.latest`, cut the data the same way the CLI does.
+CURRENT_DAY_JOIN = """
+JOIN (
+    SELECT p2.retailer, COALESCE(
+        MAX(CASE WHEN EXISTS (
+                SELECT 1 FROM price_observations o2
+                WHERE o2.product_id = p2.id AND o2.run_id IS NOT NULL)
+            THEN substr(p2.last_seen, 1, 10) END),
+        MAX(substr(p2.last_seen, 1, 10))) AS day
+    FROM products p2 GROUP BY p2.retailer
+) current ON current.retailer = p.retailer
+         AND substr(p.last_seen, 1, 10) = current.day
+"""
 
 _PRODUCT_FIELDS = (
     "name", "brand", "producer", "url", "image_url", "volume_l", "abv", "vintage",
@@ -236,11 +268,15 @@ class Store:
         self.conn.execute(
             "INSERT INTO price_observations (product_id, observed_at, name, price, "
             "currency, list_price, unit_price, unit_price_unit, price_per_litre, "
-            "on_promotion, offer_type, in_stock, run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "on_promotion, offer_type, in_stock, deposit, run_id) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (product_id, product.scraped_at.isoformat(), product.name, product.price,
              product.currency, product.list_price, product.unit_price,
              product.unit_price_unit, product.price_per_litre,
-             int(product.on_promotion), product.offer_type, in_stock, run_id),
+             int(product.on_promotion), product.offer_type, in_stock,
+             deposit.payable(product.retailer, product.volume_l, product.name,
+                             product.deposit),
+             run_id),
         )
         return True
 
@@ -265,18 +301,14 @@ class Store:
         """
         sql = """
         SELECT p.*, o.price, o.currency, o.list_price, o.unit_price, o.unit_price_unit,
-               o.price_per_litre, o.on_promotion, o.offer_type, o.in_stock, o.observed_at
+               o.price_per_litre, o.on_promotion, o.offer_type, o.in_stock,
+               o.deposit, o.observed_at
         FROM products p
         JOIN price_observations o ON o.id = (
             SELECT id FROM price_observations
             WHERE product_id = p.id ORDER BY observed_at DESC, id DESC LIMIT 1
         )
-        JOIN (
-            SELECT retailer, MAX(substr(last_seen, 1, 10)) AS day
-            FROM products GROUP BY retailer
-        ) current ON current.retailer = p.retailer
-                 AND substr(p.last_seen, 1, 10) = current.day
-        """
+        """ + CURRENT_DAY_JOIN
         params: tuple = ()
         if retailer:
             sql += " WHERE p.retailer = ?"
@@ -435,7 +467,7 @@ class Store:
     #: every scrape, so storing them here would only let them go stale.
     HISTORY_COLUMNS = ("observed_at", "retailer", "external_id", "name", "price",
                        "currency", "list_price", "on_promotion", "offer_type",
-                       "in_stock")
+                       "in_stock", "deposit")
 
     def export_history(self, path: str | Path) -> int:
         """Write every price observation as CSV.
@@ -457,7 +489,7 @@ class Store:
                    -- COALESCE covers rows written before the column existed.
                    COALESCE(o.name, p.name) AS name,
                    o.price, o.currency, o.list_price, o.on_promotion,
-                   o.offer_type, o.in_stock
+                   o.offer_type, o.in_stock, o.deposit
             FROM price_observations o JOIN products p ON p.id = o.product_id
             ORDER BY o.observed_at, p.retailer, p.external_id
             """).fetchall()
@@ -491,12 +523,14 @@ class Store:
                     continue
                 self.conn.execute(
                     "INSERT INTO price_observations (product_id, observed_at, name, "
-                    "price, currency, list_price, on_promotion, offer_type, in_stock) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "price, currency, list_price, on_promotion, offer_type, "
+                    "in_stock, deposit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (product_id, row["observed_at"], row["name"] or None,
                      _float(row["price"]), row["currency"] or None,
                      _float(row["list_price"]), _int(row["on_promotion"]),
-                     row["offer_type"] or None, _int(row["in_stock"])))
+                     row["offer_type"] or None, _int(row["in_stock"]),
+                     # Absent from files written before the column existed.
+                     _float(row.get("deposit"))))
                 loaded += 1
         self.conn.commit()
         return loaded
