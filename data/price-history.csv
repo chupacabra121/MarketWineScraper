@@ -6749,6 +6749,9 @@ observed_at,retailer,external_id,name,price,currency,list_price,on_promotion,off
 2026-08-11T09:39:04.843641+00:00,supeco_glovo,10005645,"Sol De Chile, Vin Rose Syrah 0.75L",19.87,RON,,0,catalogue,,
 2026-08-11T09:39:04.843870+00:00,supeco_glovo,10511092,Mateus Branco 0.187L,13.49,RON,,0,catalogue,,
 2026-08-11T09:39:04.844052+00:00,supeco_glovo,10508288,"Vin Demisec Rose Mateus 0,187L Vol.11%",13.49,RON,,0,catalogue,,
+2026-08-12T00:00:00+00:00,froo,capture-2812227856,Babanu Vin rosu demidulce 2L,13.99,RON,16.99,1,catalogue,1,0.5
+2026-08-12T00:00:00+00:00,froo,capture-9288349435,ZAI Vin spumant 0.75L,29.99,RON,36.99,1,catalogue,1,0.5
+2026-08-12T00:00:00+00:00,froo,capture-9906890806,Domeniile Samburesti Chardonnay Vin alb 0.75L,27.99,RON,33.99,1,catalogue,1,0.5
 2026-08-12T06:46:22.605822+00:00,auchan,694686,"Vin alb demisec Suvorov Glamour, Sauvignon Blanc, 0.75 l",26.9,RON,38.49,1,catalogue,1,0.5
 2026-08-12T06:46:22.607965+00:00,auchan,691880,"Vin alb sec Domeniul Coroanei Segarcea Elite, Chardonnay 0.75 l",33.89,RON,39.99,1,catalogue,1,0.5
 2026-08-12T06:46:22.608264+00:00,auchan,542709,"Vin alb demisec Castel Huniade, Feteasca Regala, 0.75 l",25.89,RON,,0,catalogue,1,0.5
