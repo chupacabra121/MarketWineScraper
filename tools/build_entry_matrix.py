@@ -1,9 +1,12 @@
-"""Entry-segment price matrix: brands under 10 lei a litre, store by store.
+"""Entry-segment price matrix: 2 litre brands under 10 lei a litre, store by store.
 
 One table. Rows are stores, columns are brands, and a cell is the cheapest that
-brand gets in that store — pack price with the litre price beside it, because
-the segment mixes 2 L PET with 3 L boxes and 10 L casks and neither figure alone
-is honest about both.
+brand gets in that store — pack price with the litre price beside it.
+
+Only the 2 litre PET is compared. The segment also holds 3 litre boxes, 5 and 10
+litre casks, and one 1 litre; letting them in put a 79.98-lei cask beside a
+15.40-lei bottle in the same column, which reads as a price gap and is a format
+gap. Setting ``FORMATS`` to another size, or to None, re-cuts the same table.
 
 The threshold reads the list price *including* the SGR deposit, which is what a
 shopper hands over. At 2 litres the deposit is 0.25 lei a litre, enough to move
@@ -29,6 +32,8 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "exports", "entry-segment-under-10.xlsx")
 
 CEILING = 10.0
+#: Bottle sizes to compare. ``None`` lets every format in.
+FORMATS: tuple[float, ...] | None = (2.0,)
 
 STORES = {
     "metro": "METRO", "selgros": "Selgros", "carrefour": "Carrefour",
@@ -84,8 +89,12 @@ def main() -> None:
     lexicon = identity.brand_lexicon(rows)
     segment = []
     for row in rows:
+        volume = row.get("volume_l")
+        if FORMATS and (volume is None
+                        or not any(abs(volume - f) < 0.01 for f in FORMATS)):
+            continue
         price = pricing.regular(row)
-        ppl = pricing.per_litre(price, row.get("volume_l"))
+        ppl = pricing.per_litre(price, volume)
         if ppl is None or ppl >= CEILING:
             continue
         segment.append((brand_of(row, lexicon), row["retailer"], price, ppl))
@@ -110,7 +119,9 @@ def main() -> None:
     numeric = book.create_sheet("Lei pe litru")
 
     for ws, combined in ((sheet, True), (numeric, False)):
-        ws["A1"] = ("Vinuri sub 10 lei/litru — preț de raft, SGR inclus"
+        sizes = ("toate formatele" if not FORMATS
+                 else " / ".join(f"{f:g} L" for f in FORMATS))
+        ws["A1"] = (f"Vinuri de {sizes} sub 10 lei/litru — preț de raft, SGR inclus"
                     if combined else "Aceleași date, doar lei/litru (numeric)")
         ws["A1"].font = Font(name="Georgia", size=13, bold=True, color=INK)
         ws["A2"] = ("Celula: prețul pachetului, iar în paranteză prețul pe litru. "
@@ -157,7 +168,8 @@ def main() -> None:
 
     book.save(OUT)
     print(f"wrote {OUT}: {len(retailers)} magazine x {len(brands)} mărci, "
-          f"{len(segment)} listări sub {CEILING:.0f} lei/L")
+          f"{len(segment)} listări sub {CEILING:.0f} lei/L"
+          + (f" la {'/'.join(f'{f:g} L' for f in FORMATS)}" if FORMATS else ""))
 
 
 if __name__ == "__main__":
