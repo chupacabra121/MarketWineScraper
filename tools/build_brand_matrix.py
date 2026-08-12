@@ -35,6 +35,8 @@ STORES = {
     "profi_glovo": "Profi (Glovo)", "auchan": "Auchan", "penny": "Penny",
     "freshful": "Freshful", "mega_image": "Mega Image", "sezamo": "Sezamo",
     "supeco_glovo": "Supeco (Glovo)", "kaufland": "Kaufland (pliant)",
+    # No catalogue of our own; present only through the shelf audit.
+    "lidl": "Lidl",
 }
 
 # (producer, brand, word that must appear in the folded title). The word is
@@ -72,7 +74,27 @@ BIB_BRANDS = [
 PET_RANGE = (1.0, 2.0)
 BIB_MIN_L = 3.0
 
+# Brands seen on a shelf that our scrape does not reach. Read off the SP-IKA
+# audit of August 2026, which visited 11 stores in 9 chains: the prices are
+# somebody else's measurement, not ours, so they are marked as such in the
+# sheet rather than mixed into the scraped figures. The audit quotes shelf
+# prices without the deposit, the same basis our sources publish, so the same
+# 0.50 lei is added here to keep the column comparable.
+# (brand, store key) -> (price excluding deposit, litres, where)
+FROM_AUDIT = {
+    ("Babanu", "auchan"): (12.69, 2.0, "Ploiesti; 18.19 la Nord"),
+    ("Monaster", "lidl"): (26.99, 1.5, "Bucuresti; auditul da 1,5 L, nu bag-in-box"),
+}
+
+# Brands known to be stocked somewhere we have neither a price nor a shelf
+# reading. Nothing derives these — each one is here because a person said so,
+# and the sheet labels them that way. Add a line to extend.
+KNOWN_STOCKED: dict[str, list[str]] = {
+    "Babanu": ["carrefour"],
+}
+
 INK, RULE, HEAD, GHOST = "231F20", "757575", "F2F2F2", "9A9A9A"
+AUDIT_INK, TOLD_INK = "1F4E79", "7F6000"
 
 
 def is_bib(row) -> bool:
@@ -113,15 +135,22 @@ def write(book, title, note, brands, best, combined):
     ws["A1"].font = Font(name="Georgia", size=13, bold=True, color=INK)
     ws["A2"] = ("Celula: prețul pachetului, iar în paranteză prețul pe litru. "
                 "Cel mai ieftin sortiment al mărcii în magazinul respectiv. "
-                "SGR inclus. Coloană gri = marca nu apare în datele noastre."
+                "SGR inclus. Negru = preț cules de noi. "
+                "Albastru = de pe raft, din auditul din august 2026, unde noi nu ajungem. "
+                "Galben = știm că se vinde, dar nu avem prețul. "
+                "Coloană gri = marca nu apare nicăieri."
                 if combined else
                 "Lei pe litru, SGR inclus. Cel mai ieftin sortiment al mărcii.")
     ws["A2"].font = Font(name="Arial", size=9, italic=True, color=RULE)
 
-    retailers = sorted({r for _, r in best},
+    named = {b for _p, b, _x in brands}
+    extra = {r for (b, r) in FROM_AUDIT if b in named}
+    extra |= {r for b, shops in KNOWN_STOCKED.items() if b in named for r in shops}
+    retailers = sorted({r for _, r in best} | extra,
                        key=lambda r: (-len({b for (b, x) in best if x == r}),
                                       STORES.get(r, r)))
-    stocked = {b for b, _ in best}
+    stocked = ({b for b, _ in best} | {b for (b, _r) in FROM_AUDIT}
+               | set(KNOWN_STOCKED)) & named
 
     top, head = 4, 5
     ws.cell(top, 1, "Producător").font = Font(name="Arial", size=8, italic=True, color=RULE)
@@ -142,17 +171,30 @@ def write(book, title, note, brands, best, combined):
         ws.cell(m, 1, STORES.get(retailer, retailer)).font = Font(
             name="Arial", size=9, bold=True, color=INK)
         for n, (_producer, brand, _pattern) in enumerate(brands, start=2):
-            found = best.get((brand, retailer))
             cell = ws.cell(m, n)
+            found = best.get((brand, retailer))
+            audit = FROM_AUDIT.get((brand, retailer))
+            told = retailer in KNOWN_STOCKED.get(brand, ())
             if found:
                 price, ppl, _volume = found
                 cell.value = f"{price:.2f} ({ppl:.2f}/L)" if combined else ppl
-                if not combined:
-                    cell.number_format = "0.00"
+                colour = INK
+            elif audit:
+                shelf, litres, _where = audit
+                price = shelf + deposit.AMOUNT
+                ppl = round(price / litres, 2)
+                cell.value = f"{price:.2f} ({ppl:.2f}/L) raft" if combined else ppl
+                colour = AUDIT_INK
+            elif told:
+                cell.value = "se vinde, fără preț" if combined else None
+                colour = TOLD_INK
             else:
-                cell.value = "—"
-            cell.font = Font(name="Arial", size=9,
-                             color=INK if found else GHOST)
+                cell.value = "—" if combined else None
+                colour = GHOST
+            if not combined and isinstance(cell.value, float):
+                cell.number_format = "0.00"
+            cell.font = Font(name="Arial", size=9, color=colour,
+                             italic=bool(not found and (audit or told)))
             cell.alignment = Alignment(horizontal="center")
 
     edge = Side(style="thin", color=RULE)
