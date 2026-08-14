@@ -99,3 +99,72 @@ class TestBottleEquivalent:
         entry = box("Vino Tinto Tempranillo", 4.99)
         assert entry.price_per_litre == 1.66
         assert entry.bottle_equivalent_price == 1.25
+
+
+class TestBrandEvidence:
+    """The judgements in brands.py are joined to listings by name fragment, so
+    a retailer renaming a wine silently drops its row's evidence. These check
+    the join rather than the judgement."""
+
+    def test_every_evidence_record_names_a_known_retailer(self):
+        from winescraper.de.brands import EVIDENCE
+        from winescraper.de.sources import all_sources
+        known = set(all_sources())
+        for record in EVIDENCE:
+            assert record.retailer in known, record.retailer
+
+    def test_every_verdict_carries_at_least_one_source(self):
+        from winescraper.de.brands import EVIDENCE
+        for record in EVIDENCE:
+            assert record.sources, f"{record.retailer}/{record.matches}"
+            for url in record.sources:
+                assert url.startswith("https://"), url
+
+    def test_every_record_states_an_owner_and_a_reason(self):
+        # The bar is "a sentence", not "a long sentence". Where three rows are
+        # one line in three colours, the later ones legitimately just point at
+        # the first — "Same grower again." is a complete and honest basis, and a
+        # length threshold would only push someone to pad it.
+        from winescraper.de.brands import EVIDENCE
+        for record in EVIDENCE:
+            where = f"{record.retailer}/{record.matches}"
+            assert record.brand_owner, where
+            assert record.basis.strip().endswith((".", "!")), where
+
+    def test_a_private_label_verdict_names_the_retailer_as_owner(self):
+        # The one claim that must not be loose: if we say a wine is a shop's own
+        # label, the owner field has to say so rather than naming the bottler.
+        from winescraper.de.brands import EVIDENCE
+        from winescraper.de.sources import all_sources
+        labels = {key: cls.label for key, cls in all_sources().items()}
+        for record in EVIDENCE:
+            if record.private_label is not True:
+                continue
+            shop = labels[record.retailer].split(" (")[0].casefold()
+            assert shop.split()[0] in record.brand_owner.casefold(), record.matches
+
+    def test_lookup_matches_on_a_fragment_not_the_whole_name(self):
+        from winescraper.de.brands import lookup
+        # The vintage moves through the title every year; the judgement is
+        # about the line, so the match has to survive that.
+        found = lookup("lidl", "Vino Tinto Tempranillo Spanien 3,0-l-Bag-in-Box "
+                               "trocken, Rotwein 2025")
+        assert found is not None and found.private_label is True
+        assert lookup("lidl", "CIMAROSA Shiraz 3-l-Bag-in-Box") is None
+
+    def test_lookup_does_not_cross_retailers(self):
+        from winescraper.de.brands import lookup
+        # "Grand Sud Merlot" is sold by Combi and by Netto; a fragment match
+        # that ignored the retailer would hand one shop's evidence to another.
+        assert lookup("globus", "Hauswein Rosé, halbtrocken") is None
+        assert lookup("schaepers", "Hauswein Rosé, halbtrocken") is not None
+
+    def test_the_stated_totals_match_the_records(self):
+        # The workbook's finding note claims six private labels and fifteen
+        # producer brands; if a judgement changes, the prose has to change too.
+        from winescraper.de.brands import EVIDENCE
+        yes = sum(1 for r in EVIDENCE if r.private_label is True)
+        no = sum(1 for r in EVIDENCE if r.private_label is False)
+        unresolved = sum(1 for r in EVIDENCE if r.private_label is None)
+        assert (yes, no, unresolved) == (6, 15, 6)
+        assert yes + no + unresolved == 27

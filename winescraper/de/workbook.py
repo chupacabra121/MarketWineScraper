@@ -24,6 +24,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
+from . import brands
 from . import packaging as pkg
 from .model import EXPORT_COLUMNS, Listing
 from .sources import UNAVAILABLE
@@ -387,9 +388,11 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
 
     rows: list[tuple] = []
     excluded: list[tuple] = []
+    ranked_pairs: list[tuple[str, Listing]] = []
     for label, group in sorted(_by(boxes, lambda x: x.retailer_label).items()):
         ranked = sorted([x for x in group if id(x) in eligible], key=_rank_key)
         top = ranked[:per_store]
+        ranked_pairs.extend((label, x) for x in top)
         for position, listing in enumerate(top, start=1):
             rows.append((
                 label if position == 1 else "", position,
@@ -429,6 +432,61 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
                 t("h_per_litre"), t("h_why")],
                excluded, {4: EUR, 5: EUR_L})
     _autosize(sheet, [24, 7, 58, 10, 11, 12, 11, 10, 14])
+    return [(label, listing) for label, listing in ranked_pairs]
+
+
+def _sheet_private_label(book: Workbook, ranked: list[tuple[str, Listing]],
+                         t: Texts) -> None:
+    """Whether each ranked wine is the retailer's own label, and the source.
+
+    The judgements live in :mod:`.brands`, hand-collected and committed, so this
+    sheet only joins them to the ranking and renders the links. Where the
+    sources did not settle a case the sheet prints "not established" rather than
+    filling the gap — six of the twenty-seven end that way, and a confident
+    guess in those rows would be the one thing a reader could not check.
+    """
+    sheet = book.create_sheet(t("sheet_label"))
+    row = _title(sheet, t("label_title"), t("label_sub"), span=7)
+    row = _note(sheet, row, t("label_method"), span=7)
+    row = _note(sheet, row, t("label_finding"), span=7)
+
+    verdict = {True: t("yes"), False: t("no"), None: t("unresolved")}
+    header_row = row
+    _table(sheet, row,
+           [t("h_retailer"), t("h_wine"), t("h_private_label"),
+            t("h_brand_owner"), t("h_operator"), t("h_basis"), t("h_sources")],
+           [], band=False)
+    row += 1
+
+    for label, listing in ranked:
+        record = brands.lookup(listing.retailer, listing.name)
+        values = [
+            label, listing.name,
+            verdict[record.private_label] if record else t("unresolved"),
+            record.brand_owner if record else "",
+            record.operator if record else "",
+            record.basis if record else "",
+        ]
+        for column, value in enumerate(values, start=1):
+            cell = sheet.cell(row=row, column=column, value=value)
+            cell.font = BODY_FONT
+            cell.border = CELL_BORDER
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+            if column == 3 and record is not None:
+                cell.font = STRONG
+        # Each source as its own clickable cell, so a reader can follow any one
+        # of them rather than picking a URL out of a joined string.
+        for offset, url in enumerate((record.sources if record else [])):
+            cell = sheet.cell(row=row, column=7 + offset, value=url)
+            cell.hyperlink = url
+            cell.font = Font(name="Calibri", size=9, color="0563C1",
+                             underline="single")
+            cell.border = CELL_BORDER
+        sheet.row_dimensions[row].height = 46
+        row += 1
+
+    sheet.freeze_panes = sheet.cell(row=header_row + 1, column=1)
+    _autosize(sheet, [22, 46, 13, 30, 38, 62, 46, 46, 46])
 
 
 def _sheet_competing_formats(book: Workbook, everything: list[Listing],
@@ -620,7 +678,8 @@ def build_workbook(listings: list[Listing], path: Path,
     book.remove(book.active)
 
     _sheet_summary(book, scope, listings, stamp, t)
-    _sheet_cheapest(book, scope, t)
+    ranked = _sheet_cheapest(book, scope, t)
+    _sheet_private_label(book, ranked, t)
     _sheet_segments(book, scope, t)
     _sheet_by_format(book, scope, t)
     _sheet_by_retailer(book, scope, t)

@@ -89,6 +89,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "sheet_retailers": {"de": "Nach Händler", "en": "By retailer"},
     "sheet_cheapest": {"de": "Günstigste drei je Händler",
                        "en": "Cheapest three per store"},
+    "sheet_label": {"de": "Eigenmarke oder nicht",
+                    "en": "Private label or not"},
     "sheet_formats": {"de": "Formatvergleich", "en": "Format comparison"},
     "sheet_pet": {"de": "PET-Prüfung", "en": "PET evidence"},
     "sheet_unavailable": {"de": "Nicht erfasst", "en": "Not covered"},
@@ -358,6 +360,65 @@ STRINGS: dict[str, dict[str, str]] = {
                "like Maybach and Bree.")},
     "cheapest_none": {"de": "kein Angebot in dieser Auswahl",
                       "en": "no listing in this selection"},
+
+    # ----------------------------------------------------------- own label
+    "h_private_label": {"de": "Eigenmarke?", "en": "Private label?"},
+    "h_brand_owner": {"de": "Markeninhaber", "en": "Brand owner"},
+    "h_operator": {"de": "Verantwortl. Lebensmittelunternehmer",
+                   "en": "Responsible food business operator"},
+    "h_basis": {"de": "Beleg", "en": "Basis"},
+    "h_sources": {"de": "Quellen", "en": "Sources"},
+    "yes": {"de": "ja", "en": "yes"},
+    "no": {"de": "nein", "en": "no"},
+    "unresolved": {"de": "nicht belegbar", "en": "not established"},
+    "label_title": {"de": "Eigenmarke oder Herstellermarke?",
+                    "en": "Private label or producer brand?"},
+    "label_sub": {
+        "de": ("Für jeden der drei günstigsten Bag-in-Box je Händler, mit "
+               "verlinkter Quelle für jede Aussage."),
+        "en": ("For each of the three cheapest bag-in-box wines per store, "
+               "with a linked source for every claim.")},
+    "label_method": {
+        "de": ("Drei Belegarten, in absteigender Stärke. (1) Wird dasselbe "
+               "Produkt von unabhängigen Händlern verkauft, ist es keine "
+               "Eigenmarke — eine Eigenmarke ist definitionsgemäß exklusiv. "
+               "(2) Führt der Abfüller die Marke auf der eigenen Website als "
+               "seine, ist das seine eigene Aussage. (3) Der verantwortliche "
+               "Lebensmittelunternehmer nach Art. 8/9 LMIV, den der Händler im "
+               "Fernabsatz nach Art. 14 LMIV vor dem Kauf nennen muss.\n\n"
+               "Wichtig zu Punkt (3): Eine genannte Weinkellerei schließt eine "
+               "Eigenmarke gerade nicht aus. Peter Mertes, Zimmermann-Graeff & "
+               "Müller und Einig-Zenzen füllen sowohl eigene Marken als auch "
+               "Handelsmarken ab und stehen in beiden Fällen dort. Das Feld "
+               "beantwortet „wer haftet“, nicht „wem gehört die Marke“."),
+        "en": ("Three kinds of evidence, strongest first. (1) If unrelated "
+               "retailers sell the identical product it is not a private "
+               "label — a private label is exclusive by definition. (2) If the "
+               "bottler presents the brand as its own on its own site, that is "
+               "the producer asserting ownership. (3) The responsible food "
+               "business operator under LMIV Art. 8/9, which a distance seller "
+               "must show before purchase under Art. 14.\n\n"
+               "A caution on (3): naming a winery does not rule out a private "
+               "label. Peter Mertes, Zimmermann-Graeff & Müller and "
+               "Einig-Zenzen fill both their own brands and retailers' labels "
+               "and appear as operator either way. The field answers who is "
+               "liable, not whose brand it is.")},
+    "label_finding": {
+        "de": ("Ergebnis: Von 27 geprüften Angeboten sind sechs Eigenmarken — "
+               "die drei Lidl-Weine und die drei Schäpers-Hausweine. Fünfzehn "
+               "sind fremde Marken, sechs ließen sich nicht belegen. "
+               "Bemerkenswert: Die beiden günstigsten Händler kommen auf "
+               "entgegengesetztem Weg dorthin. Lidl führt die eigene Linie und "
+               "lässt sie von drei verschiedenen Kellereien abfüllen; Netto "
+               "führt in der Box gar keine Eigenmarke und liegt mit reinen "
+               "Herstellermarken beim 2,3-fachen Preis."),
+        "en": ("Result: of 27 listings checked, six are private labels — the "
+               "three Lidl wines and the three Schäpers house wines. Fifteen "
+               "are other companies' brands and six could not be established. "
+               "The two ends of the price range get there by opposite routes: "
+               "Lidl owns its line and has three different wineries fill it, "
+               "while Netto carries no own-label box at all and sits at 2.3× "
+               "the price on producer brands alone.")},
 
     # ------------------------------------------------------------------- PET
     "pet_title": {"de": "PET-Flaschen: gesuchte Belege",

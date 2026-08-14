@@ -87,3 +87,30 @@ class TestLookup:
         # as collected rather than becoming blank.
         assert Texts("en").country("Chile") == "Chile"
         assert Texts("en").country("Deutschland") == "Germany"
+
+
+class TestSheetNames:
+    """Excel rejects five characters in a sheet name, and openpyxl raises at
+    build time rather than at import — so a name like "Eigenmarke?" passes
+    every unit test and breaks the deliverable."""
+
+    FORBIDDEN = set(r"[]:*?/\\")
+
+    def test_no_sheet_name_uses_a_character_excel_refuses(self):
+        for key, entry in STRINGS.items():
+            if not key.startswith("sheet_"):
+                continue
+            for language, title in entry.items():
+                bad = self.FORBIDDEN & set(title)
+                assert not bad, f"{key}/{language}: {title!r} contains {bad}"
+
+    def test_no_sheet_name_exceeds_excels_limit(self):
+        for key, entry in STRINGS.items():
+            if key.startswith("sheet_"):
+                for language, title in entry.items():
+                    assert len(title) <= 31, f"{key}/{language}: {title!r}"
+
+    def test_sheet_names_are_unique_within_a_language(self):
+        for language in LANGUAGES:
+            names = [e[language] for k, e in STRINGS.items() if k.startswith("sheet_")]
+            assert len(names) == len(set(names)), f"{language}: duplicate sheet name"

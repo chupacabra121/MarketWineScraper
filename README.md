@@ -469,6 +469,21 @@ separated from, JSONL, and the workbook in **both German and English** —
 `German-Wine-Market-PET-BagInBox.xlsx`. Same sheets, same rows, same numbers;
 only the wording differs. `--language en` builds just one.
 
+A *Private label or not* sheet judges each of those 27 wines and links a source
+for every claim. The judgements are hand-collected and committed in
+`winescraper/de/brands.py`, in the same spirit as `decisions.jsonl` on the
+Romanian side — a human read the sources, and the file records what they read.
+Three kinds of evidence are used, strongest first: the identical product sold by
+unrelated retailers (a private label is exclusive by definition), the bottler
+presenting the brand as its own, and the responsible food business operator that
+LMIV Art. 8/9 requires and Art. 14 makes a distance seller publish before
+purchase. That last field is the one people misread: naming a winery does *not*
+rule out a private label, because Peter Mertes, Zimmermann-Graeff & Müller and
+Einig-Zenzen fill both their own brands and retailers' labels and appear as
+operator either way. Six of the 27 are private labels, fifteen are other
+companies' brands, and six could not be established — which the sheet says
+rather than guessing.
+
 The *Cheapest three per store* sheet ranks by EUR/litre and states its filters
 rather than applying them quietly: mulled wine is held out (it sells in the same
 10-litre box at a third of the litre price and would take first place at METRO
@@ -530,6 +545,15 @@ channels: Netto's entry box costs 2.3× Lidl's, because Netto carries no
 own-brand box at all — its whole bag-in-box range is Maybach, Bree, Grand Sud
 and Weinhaus Müller. A specialist (Schäpers, 2.37 €/l) undercuts two of the
 three discounters.
+
+Checking who owns those brands explains the spread. **The two cheapest
+consumer sources reach their price by owning the label, and the dearest
+discounter by not owning one.** Lidl's three entry boxes carry no producer
+brand and are filled by three different wineries — Bodegas Isidro Milagro,
+Félix Solís and Vineris — which is what a retailer-controlled specification
+looks like. Schäpers' Hauswein line is the same pattern at a specialist.
+Netto's whole box range is Peter Mertes' Maybach and Bree, bought as branded
+goods, and it sits at 3.83 €/l.
 
 ### Coverage: every chain on the Wikipedia list
 
