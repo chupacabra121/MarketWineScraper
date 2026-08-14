@@ -1,13 +1,15 @@
-"""The study's Excel deliverable.
+"""The study's Excel deliverable, in German or English.
 
 Sheet order follows how the question gets answered rather than how the data was
 collected: the headline price points first, then the cuts that explain them
-(format, retailer, colour, origin), then the two sheets that say what the
-numbers do *not* cover — the PET probe and the retailers that could not be
+(segment, size, retailer, competing formats), then the two sheets that say what
+the numbers do *not* cover — the PET evidence and the retailers that could not be
 reached — and only then the raw rows.
 
-Every figure on every summary sheet is computed from the rows on ``Alle Daten``,
-so the workbook can be checked against itself.
+Every figure on every summary sheet is computed from the rows on the data sheet,
+so the workbook can be checked against itself. Every user-visible string comes
+from :mod:`.text`, so the German and English builds differ in wording and in
+nothing else: same sheets, same rows, same numbers.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from . import packaging as pkg
 from .model import EXPORT_COLUMNS, Listing
 from .sources import UNAVAILABLE
+from .text import Texts
 
 # --- house style -------------------------------------------------------------
 INK = "1F2933"
@@ -130,62 +133,53 @@ def _litre_prices(listings: Iterable[Listing]) -> list[float]:
     return [x.price_per_litre for x in listings if x.price_per_litre is not None]
 
 
-CHANNEL_LABELS = {
-    "supermarkt": "Supermarkt", "discounter": "Discounter",
-    "getraenkemarkt": "Getränkemarkt", "fachhandel": "Fachhandel",
-    "cash_and_carry": "Cash & Carry", "online": "Online",
-    "drogerie": "Drogerie", "bio": "Bio", "convenience": "Convenience",
-}
+def _money(value: float, t: Texts) -> str:
+    """A euro amount written the way the language writes it."""
+    if t.language == "de":
+        return f"{value:.2f}".replace(".", ",") + " €"
+    return f"{value:.2f} €"
 
 
 # --- sheets ------------------------------------------------------------------
 def _sheet_summary(book: Workbook, scope: list[Listing], everything: list[Listing],
-                   stamp: str) -> None:
-    sheet = book.create_sheet("Übersicht")
-    row = _title(sheet, "Deutscher Weinmarkt — PET & Bag-in-Box",
-                 f"Preispunkte je Liter, erhoben {stamp}. "
-                 "Alle Preise in EUR, inkl. MwSt., ohne Pfand sofern nicht anders vermerkt.")
+                   stamp: str, t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_summary"))
+    row = _title(sheet, t("summary_title"), t("summary_sub", stamp=stamp))
 
     consumer = [x for x in scope if x.price_basis == "gross"]
     still = [x for x in consumer if x.product_type == "still"]
 
-    row = _note(sheet, row,
-                "Kernbefund: Bag-in-Box ist in Deutschland ein etabliertes "
-                "Weinformat mit klarer Preisstruktur. Wein in PET-Flaschen wird "
-                "im deutschen Lebensmittel- und Fachhandel nicht verkauft — siehe "
-                "Blatt „PET-Prüfung“.")
+    row = _note(sheet, row, t("summary_headline"))
 
-    headers = ["Kennzahl", "Wert", "Erläuterung"]
     litre = _litre_prices(still)
     boxes = [x for x in still if x.packaging == pkg.BAG_IN_BOX]
     three = [x for x in boxes if x.volume_l == 3.0]
     facts = [
-        ("Erfasste Weinangebote gesamt", len(everything),
-         "alle Weine aller Quellen, auch Glasflaschen"),
-        ("davon PET oder Bag-in-Box", len(scope),
-         f"{len(scope)/len(everything):.0%} des erfassten Sortiments"),
-        ("davon Bag-in-Box", sum(1 for x in scope if x.packaging == pkg.BAG_IN_BOX), ""),
-        ("davon PET-Flasche", sum(1 for x in scope if x.packaging == pkg.PET),
-         "kein einziges Angebot gefunden"),
-        ("Stillwein-Angebote in der Auswertung", len(still),
-         "ohne Glühwein, Sangria und Schaumwein"),
+        (t("fact_total"), len(everything), t("fact_total_note")),
+        (t("fact_scope"), len(scope),
+         t("fact_scope_note", pct=f"{len(scope)/len(everything):.0%}")),
+        (t("fact_bib"), sum(1 for x in scope if x.packaging == pkg.BAG_IN_BOX), ""),
+        (t("fact_pet"), sum(1 for x in scope if x.packaging == pkg.PET),
+         t("fact_pet_note")),
+        (t("fact_still"), len(still), t("fact_still_note")),
     ]
-    row = _table(sheet, row, headers, facts, {2: "#,##0"})
+    row = _table(sheet, row, [t("h_metric"), t("h_value"), t("h_note")],
+                 facts, {2: "#,##0"})
 
     stats = _stats(litre)
     box_stats = _stats(_litre_prices(boxes))
     three_stats = _stats(_litre_prices(three))
     price_rows = [
-        ("Alle Stillweine PET/BiB", stats["n"], stats["min"], stats["median"],
+        (t("row_all_scope"), stats["n"], stats["min"], stats["median"],
          stats["mean"], stats["max"]),
-        ("nur Bag-in-Box", box_stats["n"], box_stats["min"], box_stats["median"],
+        (t("row_bib_only"), box_stats["n"], box_stats["min"], box_stats["median"],
          box_stats["mean"], box_stats["max"]),
-        ("nur 3-Liter-Bag-in-Box", three_stats["n"], three_stats["min"],
+        (t("row_three_only"), three_stats["n"], three_stats["min"],
          three_stats["median"], three_stats["mean"], three_stats["max"]),
     ]
     row = _table(sheet, row,
-                 ["Preispunkt (EUR/Liter)", "Angebote", "Minimum", "Median",
-                  "Mittelwert", "Maximum"],
+                 [t("h_price_point"), t("h_offers"), t("h_min"), t("h_median"),
+                  t("h_mean"), t("h_max")],
                  price_rows, {3: EUR_L, 4: EUR_L, 5: EUR_L, 6: EUR_L})
 
     # The 0.75 L equivalent is the comparison a shopper actually makes.
@@ -194,35 +188,94 @@ def _sheet_summary(book: Workbook, scope: list[Listing], everything: list[Listin
     eq = _stats(equivalents)
     if eq["n"]:
         row = _table(sheet, row,
-                     ["3-Liter-Box umgerechnet auf 0,75 l", "Angebote", "Minimum",
-                      "Median", "Mittelwert", "Maximum"],
-                     [("Flaschenäquivalent", eq["n"], eq["min"], eq["median"],
+                     [t("h_bottle_equiv"), t("h_offers"), t("h_min"),
+                      t("h_median"), t("h_mean"), t("h_max")],
+                     [(t("row_bottle_equiv"), eq["n"], eq["min"], eq["median"],
                        eq["mean"], eq["max"])],
                      {3: EUR, 4: EUR, 5: EUR, 6: EUR})
 
-    row = _note(sheet, row,
-                "Pfand: Bag-in-Box ist nach § 31 Abs. 4 VerpackG als ökologisch "
-                "vorteilhafte Einweggetränkeverpackung pfandfrei. Auf PET-Flaschen "
-                "von 0,1 bis 3,0 Litern lägen 0,25 € Einwegpfand — seit dem "
-                "1.1.2022 unabhängig vom Inhalt und damit auch auf Wein. Für die "
-                "erhobenen Bag-in-Box-Angebote sind Regalpreis und Kassenpreis "
-                "deshalb identisch.")
-    _note(sheet, row,
-          "METRO-Preise sind Netto-Handelspreise (B2B, ohne MwSt.) und werden in "
-          "den Verbraucher-Kennzahlen oben nicht mitgerechnet. Sie stehen separat "
-          "auf dem Blatt „Nach Händler“.")
+    row = _note(sheet, row, t("note_pfand"))
+    _note(sheet, row, t("note_metro"))
     _autosize(sheet, [38, 12, 14, 12, 13, 12, 12, 12])
 
 
-def _sheet_by_format(book: Workbook, scope: list[Listing]) -> None:
-    sheet = book.create_sheet("Nach Gebindegröße")
-    row = _title(sheet, "Preispunkt nach Gebindegröße",
-                 "Nur Stillwein, Verbraucherpreise (ohne METRO-Nettopreise).")
+def _sheet_segments(book: Workbook, scope: list[Listing], t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_segments"))
+    row = _title(sheet, t("segments_title"), t("segments_sub"))
+
+    three = [x for x in scope
+             if x.packaging == pkg.BAG_IN_BOX and x.volume_l == 3.0
+             and x.product_type == "still" and x.price_basis == "gross"
+             and x.price is not None]
+
+    # Bands cut at the gaps in the observed distribution, not at round numbers.
+    # The floor is 4.99; the next cluster sits at 7.12; the median is 11.49 and
+    # the upper quartile 15.99. So 8, 12 and 18 fall between groups rather than
+    # through the middle of one.
+    bands = [
+        ("seg_entry", 0.0, 8.0, "seg_entry_note"),
+        ("seg_mid", 8.0, 12.0, "seg_mid_note"),
+        ("seg_premium", 12.0, 18.0, "seg_premium_note"),
+        ("seg_top", 18.0, 10_000.0, "seg_top_note"),
+    ]
+    rows = []
+    for name_key, low, high, note_key in bands:
+        group = [x for x in three if low <= x.price < high]
+        stats = _stats(_litre_prices(group))
+        # The outer bands are open-ended and read better said that way than as
+        # "0.00 €–8.00 €", which implies a floor nobody prices against.
+        if low == 0.0:
+            band = t("band_under", high=_money(high, t).replace(" €", ""))
+        elif high >= 1000:
+            band = t("band_from", low=_money(low, t).replace(" €", ""))
+        else:
+            band = f"{_money(low, t)}–{_money(high, t)}"
+        rows.append((
+            t(name_key), band, len(group),
+            round(len(group) / len(three), 4) if three else 0,
+            stats["min"], stats["median"], stats["max"], t(note_key),
+        ))
+    row = _table(sheet, row,
+                 [t("h_segment"), t("h_price_band"), t("h_offers"), t("h_share"),
+                  t("h_litre_min"), t("h_litre_med"), t("h_litre_max"),
+                  t("h_typical")],
+                 rows, {4: PCT, 5: EUR_L, 6: EUR_L, 7: EUR_L})
+
+    row = _note(sheet, row, t("segments_note"), span=8)
+
+    by_colour = []
+    for colour, group in sorted(_by([x for x in three if x.colour],
+                                    lambda x: x.colour).items()):
+        stats = _stats(_litre_prices(group))
+        by_colour.append((t.colour(colour), stats["n"], stats["min"],
+                          stats["median"], stats["max"]))
+    row = _table(sheet, row,
+                 [t("h_colour_three"), t("h_offers"), t("h_litre_min"),
+                  t("h_litre_med"), t("h_litre_max")],
+                 by_colour, {3: EUR_L, 4: EUR_L, 5: EUR_L})
+
+    by_country = []
+    for country, group in sorted(_by([x for x in three if x.country],
+                                     lambda x: x.country).items(),
+                                 key=lambda kv: -len(kv[1])):
+        stats = _stats(_litre_prices(group))
+        by_country.append((t.country(country), stats["n"], stats["min"],
+                           stats["median"], stats["max"]))
+    _table(sheet, row,
+           [t("h_origin_three"), t("h_offers"), t("h_litre_min"),
+            t("h_litre_med"), t("h_litre_max")],
+           by_country, {3: EUR_L, 4: EUR_L, 5: EUR_L})
+    _autosize(sheet, [18, 20, 11, 10, 12, 14, 12, 42])
+
+
+def _sheet_by_format(book: Workbook, scope: list[Listing], t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_sizes"))
+    row = _title(sheet, t("sizes_title"), t("sizes_sub"))
 
     still = [x for x in scope
              if x.product_type == "still" and x.price_basis == "gross"]
-    # Single containers only. A "BiB-Paket, 9 L" is three boxes sold together,
-    # and listing it as a nine-litre gebinde would invent a size nobody fills.
+    # Single containers only. A "BiB pack, 9 L" is three boxes sold together,
+    # and listing it as a nine-litre container would invent a size nobody fills.
     singles = [x for x in still if not x.is_pack]
 
     def _size_rows(group_source: list[Listing]) -> list[tuple]:
@@ -232,8 +285,8 @@ def _sheet_by_format(book: Workbook, scope: list[Listing]) -> None:
             stats = _stats(_litre_prices(group))
             prices = sorted(x.price for x in group if x.price is not None)
             out.append((
-                f"{volume:g} l" if volume else "ohne Angabe",
-                pkg.LABELS.get(group[0].packaging, ""),
+                f"{volume:g} l" if volume else t("not_stated"),
+                t.packaging(group[0].packaging),
                 # len(group), not stats["n"]: a row with no size has no price
                 # per litre, and showing its offer count as zero would read as
                 # an empty row rather than as "size not stated".
@@ -244,130 +297,50 @@ def _sheet_by_format(book: Workbook, scope: list[Listing]) -> None:
             ))
         return out
 
-    headers = ["Gebinde", "Verpackung", "Angebote", "Preis min", "Preis Median",
-               "Preis max", "EUR/l min", "EUR/l Median", "EUR/l max"]
+    headers = [t("h_container"), t("h_packaging"), t("h_offers"),
+               t("h_price_min"), t("h_price_med"), t("h_price_max"),
+               t("h_litre_min"), t("h_litre_med"), t("h_litre_max")]
     money = {4: EUR, 5: EUR, 6: EUR, 7: EUR_L, 8: EUR_L, 9: EUR_L}
     row = _table(sheet, row, headers, _size_rows(singles), money)
-
-    row = _note(sheet, row,
-                "Die 3-Liter-Box ist das Standardgebinde und stellt die große "
-                "Mehrheit aller erfassten Bag-in-Box-Angebote. Der Preis je "
-                "Liter fällt mit der Gebindegröße: 5-Liter-Gebinde liegen "
-                "darunter, 1,5- und 2,25-Liter-Gebinde deutlich darüber.", span=9)
+    row = _note(sheet, row, t("sizes_note"), span=9)
 
     packs = [x for x in still if x.is_pack]
     if packs:
-        row = _table(sheet, row,
-                     ["Mehrfachpakete (getrennt ausgewiesen)"] + headers[1:],
+        row = _table(sheet, row, [t("h_multipacks")] + headers[1:],
                      _size_rows(packs), money)
-        _note(sheet, row,
-              "Pakete aus mehreren Boxen. Wo der Händler nur die Gesamtmenge "
-              "nennt (etwa „BiB-Paket … 9 L“) und seine Stückzahl in "
-              "Flaschenäquivalenten zählt, bleibt die Einzelbox-Größe offen; "
-              "die Menge wird dann als Ganzes geführt. Der Preis je Liter ist "
-              "in beiden Fällen korrekt.", span=9)
+        _note(sheet, row, t("multipack_note"), span=9)
     _autosize(sheet, [34, 18, 11, 12, 14, 12, 12, 14, 12])
 
 
-def _sheet_by_retailer(book: Workbook, scope: list[Listing]) -> None:
-    sheet = book.create_sheet("Nach Händler")
-    row = _title(sheet, "Preispunkt nach Händler und Vertriebskanal",
-                 "Alle PET/Bag-in-Box-Angebote je Quelle.")
+def _sheet_by_retailer(book: Workbook, scope: list[Listing], t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_retailers"))
+    row = _title(sheet, t("retailers_title"), t("retailers_sub"))
 
     rows = []
     for label, group in sorted(_by(scope, lambda x: x.retailer_label).items()):
         stats = _stats(_litre_prices(group))
         prices = sorted(x.price for x in group if x.price is not None)
         rows.append((
-            label, CHANNEL_LABELS.get(group[0].channel, group[0].channel),
-            "netto (B2B)" if group[0].price_basis == "net" else "brutto",
+            label, t.channel(group[0].channel), t.basis(group[0].price_basis),
             stats["n"], prices[0] if prices else None,
             prices[-1] if prices else None,
             stats["min"], stats["median"], stats["max"],
         ))
     row = _table(sheet, row,
-                 ["Händler", "Kanal", "Preisbasis", "Angebote", "Preis min",
-                  "Preis max", "EUR/l min", "EUR/l Median", "EUR/l max"],
+                 [t("h_retailer"), t("h_channel"), t("h_price_basis"),
+                  t("h_offers"), t("h_price_min"), t("h_price_max"),
+                  t("h_litre_min"), t("h_litre_med"), t("h_litre_max")],
                  rows, {5: EUR, 6: EUR, 7: EUR_L, 8: EUR_L, 9: EUR_L})
 
-    _note(sheet, row,
-          "Die Preisbasis trennt die Zeilen: METRO ist Cash & Carry und zeigt "
-          "Nettopreise ohne MwSt., die rund 19 % unter einem vergleichbaren "
-          "Verbraucherpreis liegen. Lidl ist der einzige erreichbare Filialist; "
-          "Kaufland und REWE sperren Rechenzentrums-Adressen aus (Blatt "
-          "„Nicht erreichbar“).", span=9)
+    _note(sheet, row, t("retailers_note"), span=9)
     _autosize(sheet, [24, 18, 14, 11, 12, 12, 12, 14, 12])
 
 
-def _sheet_segments(book: Workbook, scope: list[Listing]) -> None:
-    sheet = book.create_sheet("Segmente")
-    row = _title(sheet, "Preissegmente der 3-Liter-Bag-in-Box",
-                 "Das Standardgebinde, über alle Verbraucherquellen.")
-
-    three = [x for x in scope
-             if x.packaging == pkg.BAG_IN_BOX and x.volume_l == 3.0
-             and x.product_type == "still" and x.price_basis == "gross"
-             and x.price is not None]
-
-    # Bands cut at the gaps in the observed distribution, not at round numbers.
-    # The floor is 4.99; the next cluster sits at 7.12; the median is 11.99 and
-    # the upper quartile 15.99. So 8, 12 and 18 fall between groups rather than
-    # through the middle of one.
-    bands = [
-        ("Einstieg", 0.0, 8.0, "Eigenmarken der Discounter und Hausweine"),
-        ("Mittelfeld", 8.0, 12.0, "Marken wie Grand Sud, Maybach, Mertes"),
-        ("Premium", 12.0, 18.0, "Sortenweine, Fachhandelsmarken"),
-        ("Hochpreis", 18.0, 10_000.0, "Winzer- und Bioweine, Markenrosé"),
-    ]
-    rows = []
-    for name, low, high, comment in bands:
-        group = [x for x in three if low <= x.price < high]
-        stats = _stats(_litre_prices(group))
-        rows.append((
-            name, f"{low:.2f}–{high:.2f} €" if high < 1000 else f"ab {low:.2f} €",
-            len(group),
-            round(len(group) / len(three), 4) if three else 0,
-            stats["min"], stats["median"], stats["max"], comment,
-        ))
-    row = _table(sheet, row,
-                 ["Segment", "Preisspanne (3 l)", "Angebote", "Anteil",
-                  "EUR/l min", "EUR/l Median", "EUR/l max", "Typisch"],
-                 rows, {4: PCT, 5: EUR_L, 6: EUR_L, 7: EUR_L})
-
-    row = _note(sheet, row,
-                "Der Einstiegspreis für 3 Liter Wein in Deutschland liegt bei "
-                "4,99 € (1,66 €/l) — Lidls Eigenmarken Vino Tinto, Vino Rosado "
-                "und Vino Blanco. Das entspricht 1,25 € je 0,75-l-Flasche und "
-                "ist der Boden des Marktes.", span=8)
-
-    by_colour = []
-    for colour, group in sorted(_by([x for x in three if x.colour],
-                                    lambda x: x.colour).items()):
-        stats = _stats(_litre_prices(group))
-        by_colour.append((
-            {"rot": "Rotwein", "weiss": "Weißwein", "rose": "Roséwein"}.get(colour, colour),
-            stats["n"], stats["min"], stats["median"], stats["max"]))
-    row = _table(sheet, row,
-                 ["Farbe (3-l-Box)", "Angebote", "EUR/l min", "EUR/l Median", "EUR/l max"],
-                 by_colour, {3: EUR_L, 4: EUR_L, 5: EUR_L})
-
-    by_country = []
-    for country, group in sorted(_by([x for x in three if x.country],
-                                     lambda x: x.country).items(),
-                                 key=lambda kv: -len(kv[1])):
-        stats = _stats(_litre_prices(group))
-        by_country.append((country, stats["n"], stats["min"], stats["median"], stats["max"]))
-    _table(sheet, row,
-           ["Herkunft (3-l-Box)", "Angebote", "EUR/l min", "EUR/l Median", "EUR/l max"],
-           by_country, {3: EUR_L, 4: EUR_L, 5: EUR_L})
-    _autosize(sheet, [18, 20, 11, 10, 12, 14, 12, 42])
-
-
-def _sheet_competing_formats(book: Workbook, everything: list[Listing]) -> None:
+def _sheet_competing_formats(book: Workbook, everything: list[Listing],
+                             t: Texts) -> None:
     """What bag-in-box is priced against on the same shelf."""
-    sheet = book.create_sheet("Formatvergleich")
-    row = _title(sheet, "Bag-in-Box im Vergleich zu den anderen Gebinden",
-                 "Alle erfassten Weine nach Verpackungsart, Verbraucherpreise.")
+    sheet = book.create_sheet(t("sheet_formats"))
+    row = _title(sheet, t("formats_title"), t("formats_sub"))
 
     consumer = [x for x in everything
                 if x.price_basis == "gross" and x.product_type == "still"]
@@ -376,57 +349,45 @@ def _sheet_competing_formats(book: Workbook, everything: list[Listing]) -> None:
                                    key=lambda kv: -len(kv[1])):
         stats = _stats(_litre_prices(group))
         deposits = {x.pfand for x in group if x.pfand is not None}
-        rows.append((
-            pkg.LABELS.get(container, container), stats["n"],
-            stats["min"], stats["median"], stats["max"],
-            "0,25 €" if deposits == {0.25} else ("pfandfrei" if deposits == {0.0}
-                                                 else "gemischt/unbekannt"),
-        ))
+        if deposits == {pkg.AMOUNT}:
+            deposit = _money(pkg.AMOUNT, t)
+        elif deposits == {0.0}:
+            deposit = t("deposit_free")
+        else:
+            deposit = t("deposit_mixed")
+        rows.append((t.packaging(container), stats["n"], stats["min"],
+                     stats["median"], stats["max"], deposit))
     row = _table(sheet, row,
-                 ["Verpackung", "Angebote", "EUR/l min", "EUR/l Median",
-                  "EUR/l max", "Pfand"],
+                 [t("h_packaging"), t("h_offers"), t("h_litre_min"),
+                  t("h_litre_med"), t("h_litre_max"), t("h_deposit")],
                  rows, {3: EUR_L, 4: EUR_L, 5: EUR_L})
 
-    row = _note(sheet, row,
-                "„unbekannt“ heißt, dass der Händler die Verpackung nicht nennt. "
-                "Das ist bei der gewöhnlichen 0,75-l-Flasche der Normalfall und "
-                "wird hier nicht zu „Glas“ umgedeutet — die Zeile ist als "
-                "Vergleichsmaßstab gedacht, nicht als Aussage über das Material. "
-                "Das Maximum der Glasflaschen (1.600 €/l) ist echt: Lidl führt "
-                "Château Lafite Rothschild zu 1.200 € je 0,75 l. Für den "
-                "Formatvergleich zählt der Median, nicht der Rand.", span=6)
+    row = _note(sheet, row, t("formats_note"), span=6)
 
     # The one comparison that decides whether the format is cheap: a 3-litre box
     # against the litre bottle and the carton, which sit in the same aisle.
-    litre_bottles = [x for x in consumer if x.volume_l == 1.0]
-    cartons = [x for x in consumer if x.packaging == pkg.CARTON]
-    boxes3 = [x for x in consumer
-              if x.packaging == pkg.BAG_IN_BOX and x.volume_l == 3.0]
     compare = []
-    for name, group in (("3-l-Bag-in-Box", boxes3),
-                        ("1-l-Flasche (Literwein)", litre_bottles),
-                        ("Getränkekarton", cartons)):
+    for key, group in (
+        ("cmp_box", [x for x in consumer
+                     if x.packaging == pkg.BAG_IN_BOX and x.volume_l == 3.0]),
+        ("cmp_litre", [x for x in consumer if x.volume_l == 1.0]),
+        ("cmp_carton", [x for x in consumer if x.packaging == pkg.CARTON]),
+    ):
         stats = _stats(_litre_prices(group))
-        compare.append((name, stats["n"], stats["min"], stats["median"], stats["max"]))
+        compare.append((t(key), stats["n"], stats["min"], stats["median"],
+                        stats["max"]))
     _table(sheet, row,
-           ["Direkter Vergleich (Einstiegsformate)", "Angebote", "EUR/l min",
-            "EUR/l Median", "EUR/l max"],
+           [t("h_direct_compare"), t("h_offers"), t("h_litre_min"),
+            t("h_litre_med"), t("h_litre_max")],
            compare, {3: EUR_L, 4: EUR_L, 5: EUR_L})
     _autosize(sheet, [32, 11, 12, 14, 12, 20])
 
 
-def _sheet_pet(book: Workbook, probe_results: list, everything: list[Listing]) -> None:
-    sheet = book.create_sheet("PET-Prüfung")
-    row = _title(sheet, "PET-Flaschen: gesuchte Belege",
-                 "Die Hälfte der Fragestellung. Ergebnis: kein Angebot im Handel.")
-
-    row = _note(sheet, row,
-                "Wein in PET-Flaschen wurde in keinem der erreichten deutschen "
-                "Sortimente gefunden. Weil ein Nullbefund aus einem Filter heraus "
-                "wenig wert ist, steht er hier auf zwei unabhängigen Beinen: dem "
-                "vollständig durchgesehenen Sortiment jeder Quelle, und einer "
-                "gezielten Suche mit den Wörtern, die ein deutscher Händler "
-                "benutzen würde.")
+def _sheet_pet(book: Workbook, probe_results: list, everything: list[Listing],
+               t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_pet"))
+    row = _title(sheet, t("pet_title"), t("pet_sub"))
+    row = _note(sheet, row, t("pet_intro"))
 
     # The strongest evidence is the census, not the search: 2,221 Globus wines
     # examined one by one is a firmer denominator than any keyword query.
@@ -437,93 +398,65 @@ def _sheet_pet(book: Workbook, probe_results: list, everything: list[Listing]) -
             sum(1 for x in group if x.packaging == pkg.PET),
             sum(1 for x in group if x.packaging == pkg.BAG_IN_BOX),
         ))
-    census.append(("Gesamt", len(everything),
+    census.append((t("row_total"), len(everything),
                    sum(1 for x in everything if x.packaging == pkg.PET),
                    sum(1 for x in everything if x.packaging == pkg.BAG_IN_BOX)))
     row = _table(sheet, row,
-                 ["Vollständig durchgesehenes Sortiment", "Weine geprüft",
-                  "davon PET", "davon Bag-in-Box"], census, {2: "#,##0"})
+                 [t("h_census"), t("h_checked"), t("h_of_pet"), t("h_of_bib")],
+                 census, {2: "#,##0"})
 
     if probe_results:
         rows = [(r.source, r.query, r.hits, r.pet_hits, r.pet_wine_hits, r.example)
                 for r in probe_results]
         row = _table(sheet, row,
-                     ["Gezielte Suche", "Suchbegriff", "Treffer", "davon PET",
-                      "davon PET-Wein", "Beispieltreffer"], rows)
-        row = _note(sheet, row,
-                    "Die Treffer, die tatsächlich PET waren, waren Himbeersirup "
-                    "und Mineralwasser — kein Wein.")
+                     [t("h_search"), t("h_query"), t("h_hits"), t("h_of_pet"),
+                      t("h_pet_wine"), t("h_example")], rows)
+        row = _note(sheet, row, t("pet_search_note"))
 
-    context = [
-        ("Rechtslage", "Seit 1.1.2022 gilt das Einwegpfand von 0,25 € für alle "
-                       "Einweg-Kunststoffgetränkeflaschen von 0,1 bis 3,0 l "
-                       "unabhängig vom Inhalt — Wein in PET wäre also "
-                       "pfandpflichtig, Bag-in-Box nicht."),
-        ("Angebotsseite", "PET-Weinflaschen (250 ml, 750 ml) werden in "
-                          "Deutschland als Leergut an Winzer und Caterer "
-                          "verkauft, etwa über Flaschenland und "
-                          "Plastikflaschenshop — nicht befüllt an Endkunden."),
-        ("Einordnung", "Das große Gebinde ist in Deutschland die Bag-in-Box, "
-                       "das kleine die Glasflasche. PET besetzt dazwischen "
-                       "keine Position im Regal."),
-        ("Wo PET auftauchen könnte", "Festival- und Bordgastronomie sowie "
-                                     "Eigenabfüllungen; beides ist kein "
-                                     "Handelssortiment und daher hier nicht "
-                                     "erfasst."),
-    ]
-    _table(sheet, row, ["Punkt", "Befund"], context)
+    context = [(t("pet_law"), t("pet_law_note")),
+               (t("pet_supply"), t("pet_supply_note")),
+               (t("pet_place"), t("pet_place_note")),
+               (t("pet_where"), t("pet_where_note"))]
+    _table(sheet, row, [t("h_point"), t("h_finding")], context)
     _autosize(sheet, [22, 30, 10, 11, 14, 46])
 
 
-def _sheet_unavailable(book: Workbook) -> None:
-    sheet = book.create_sheet("Nicht erfasst")
-    row = _title(sheet, "Geprüfte, aber nicht erfasste Händler",
-                 "Jede Kette der Wikipedia-Liste deutscher Supermarktketten "
-                 "wurde einzeln geprüft. Damit „nicht im Datensatz“ nicht mit "
-                 "„führt das Format nicht“ verwechselt wird.", span=4)
+def _sheet_unavailable(book: Workbook, t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_unavailable"))
+    row = _title(sheet, t("unavailable_title"), t("unavailable_sub"), span=4)
 
     by_reason: dict[str, list[tuple]] = {}
     for _, label, channel, reason, detail in UNAVAILABLE:
         by_reason.setdefault(reason, []).append(
-            (label, CHANNEL_LABELS.get(channel, channel), detail))
+            (label, t.channel(channel), detail))
 
-    # Grouped by *why*, because the three reasons mean very different things
-    # and lumping them together would read as one uniform failure.
+    # Grouped by *why*, because the reasons mean very different things and
+    # lumping them together would read as one uniform failure.
     order = ["keine Preise online", "blockiert", "Preise clientseitig",
              "nicht erreichbar"]
     for reason in order + [r for r in by_reason if r not in order]:
         entries = by_reason.get(reason)
         if not entries:
             continue
-        heading = {
-            "keine Preise online": "Kein Online-Sortiment mit Preisen",
-            "blockiert": "Sortiment vorhanden, Zugriff gesperrt (HTTP 403)",
-            "Preise clientseitig": "Erreichbar, Preise nicht im HTML",
-            "nicht erreichbar": "Domain nicht erreichbar",
-        }.get(reason, reason)
-        cell = sheet.cell(row=row, column=1, value=f"{heading}  ({len(entries)})")
+        cell = sheet.cell(row=row, column=1,
+                          value=f"{t.reason(reason)}  ({len(entries)})")
         cell.font = STRONG
         row += 1
-        row = _table(sheet, row, ["Händler", "Kanal", "Befund"],
+        row = _table(sheet, row,
+                     [t("h_retailer"), t("h_channel"), t("h_finding")],
                      sorted(entries))
 
-    _note(sheet, row,
-          "Der Befund ist nicht in erster Linie Bot-Abwehr, sondern die "
-          "Struktur des deutschen Lebensmittelhandels: die meisten Ketten "
-          "betreiben überhaupt keinen Online-Katalog mit Preisen, sondern "
-          "Marktfinder und Wochenprospekt. Der Preis existiert nur am Regal. "
-          "Besonders relevant für diese Studie sind Getränke Hoffmann, trinkgut "
-          "und Fristo: dort verkauft sich Bag-in-Box am stärksten, und dort "
-          "steht kein einziger Preis im Netz.", span=4)
+    _note(sheet, row, t("unavailable_note"), span=4)
     _autosize(sheet, [30, 18, 104, 14])
 
 
 def _sheet_data(book: Workbook, listings: list[Listing], title: str,
-                sheet_name: str) -> None:
+                sheet_name: str, t: Texts) -> None:
     sheet = book.create_sheet(sheet_name)
-    row = _title(sheet, title,
-                 "Eine Zeile je Angebot. Leere Felder heißen „vom Händler nicht "
-                 "angegeben“ und sind nicht geschätzt.", span=len(EXPORT_COLUMNS))
+    # The column headers stay in English in both builds: they are the CSV field
+    # names, and a reader matching the sheet against the exported file needs
+    # them to be the same string.
+    row = _title(sheet, title, t("data_sub"), span=len(EXPORT_COLUMNS))
 
     money = {EXPORT_COLUMNS.index(c) + 1: EUR
              for c in ("price", "pfand", "price_incl_pfand", "list_price",
@@ -550,72 +483,57 @@ def _sheet_data(book: Workbook, listings: list[Listing], title: str,
     _autosize(sheet, widths)
 
 
-def _sheet_method(book: Workbook, stamp: str, everything: list[Listing]) -> None:
-    sheet = book.create_sheet("Methodik")
-    row = _title(sheet, "Methodik und Belastbarkeit", f"Erhebung {stamp}")
+def _sheet_method(book: Workbook, stamp: str, everything: list[Listing],
+                  t: Texts) -> None:
+    sheet = book.create_sheet(t("sheet_method"))
+    row = _title(sheet, t("method_title"), t("method_sub", stamp=stamp))
 
     from .sources import all_sources
-    rows = [(cls.label, CHANNEL_LABELS.get(cls.channel, cls.channel),
-             "netto (B2B)" if cls.price_basis == "net" else "brutto",
+    rows = [(cls.label, t.channel(cls.channel), t.basis(cls.price_basis),
              sum(1 for x in everything if x.retailer == key), cls.note)
             for key, cls in all_sources().items()]
     row = _table(sheet, row,
-                 ["Quelle", "Kanal", "Preisbasis", "Erfasste Weine", "Zugang"], rows)
+                 [t("h_source"), t("h_channel"), t("h_price_basis"),
+                  t("h_wines_collected"), t("h_access")], rows)
 
+    checked = sum(1 for x in everything
+                  if x.price_per_litre is not None and x.unit_price is not None)
     notes = [
-        ("Auswahlkriterium",
-         "Aufgenommen wird ein Angebot nur, wenn die Verpackung aus Titel, "
-         "Beschreibung, Kategorie oder Bildtext als PET-Flasche oder "
-         "Bag-in-Box lesbar ist. Was nichts sagt, bleibt „unbekannt“ und "
-         "fließt nicht in die Kennzahlen ein."),
-        ("Preis je Liter",
-         "Wird aus eigenem Preis und eigener Gebindegröße gerechnet, nicht vom "
-         "Händler übernommen — Händler rechnen den Grundpreis unterschiedlich "
-         "(mit oder ohne Pfand). Der Grundpreis des Händlers steht als "
-         "unit_price daneben und dient als Gegenprobe."),
-        ("Gegenprobe",
-         "Jede Zeile mit beiden Werten wird verglichen. In der aktuellen "
-         "Erhebung stimmen alle vergleichbaren Zeilen überein. Der Test hat "
-         "einen echten Fehler gefunden: bei Wein Schäpers stehen Preis und "
-         "Grundpreis in benachbarten Elementen, und der Parser hatte zunächst "
-         "den Grundpreis als Preis gelesen."),
-        ("Gebinde vs. Packung",
-         "Ein 6er-Karton mit 0,75-l-Flaschen meldet 4,5 Liter. Ohne Korrektur "
-         "wäre er als Großgebinde in die Auswertung geraten; Packungsgröße und "
-         "Stückzahl werden deshalb getrennt geführt."),
-        ("Abgrenzung",
-         "Glühwein, Sangria, Schaumwein und Süßwein sind erfasst, aber aus den "
-         "Stillwein-Kennzahlen ausgenommen: sie liegen je Liter auf einer "
-         "anderen Skala und würden den Preispunkt verzerren."),
-        ("Grenzen",
-         "Die Erhebung ist eine Momentaufnahme des Online-Sortiments. Sie "
-         "erfasst weder Aktionsware im Prospekt noch das Regal der "
-         "Getränkemärkte, und mit Lidl nur einen von fünf großen Filialisten."),
+        (t("m_scope"), t("m_scope_note")),
+        (t("m_three_litre"), t("m_three_litre_note")),
+        (t("m_per_litre"), t("m_per_litre_note")),
+        (t("m_crosscheck"), t("m_crosscheck_note", checked=f"{checked:,}")),
+        (t("m_packs"), t("m_packs_note")),
+        (t("m_exclusions"), t("m_exclusions_note")),
+        (t("m_limits"), t("m_limits_note")),
     ]
-    _table(sheet, row, ["Punkt", "Erläuterung"], notes)
+    _table(sheet, row, [t("h_point"), t("h_explanation")], notes)
     _autosize(sheet, [26, 110, 14, 14, 60])
 
 
 # --- entry point -------------------------------------------------------------
 def build_workbook(listings: list[Listing], path: Path,
-                   probe_results: list | None = None) -> Path:
-    """Write the study workbook and return where it went."""
+                   probe_results: list | None = None,
+                   language: str = "de") -> Path:
+    """Write the study workbook in ``language`` and return where it went."""
+    t = Texts(language)
     scope = [x for x in listings if pkg.is_in_scope(x.packaging)]
-    stamp = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+    now = datetime.now(timezone.utc)
+    stamp = now.strftime("%d.%m.%Y" if language == "de" else "%d %B %Y")
 
     book = Workbook()
     book.remove(book.active)
 
-    _sheet_summary(book, scope, listings, stamp)
-    _sheet_segments(book, scope)
-    _sheet_by_format(book, scope)
-    _sheet_by_retailer(book, scope)
-    _sheet_competing_formats(book, listings)
-    _sheet_pet(book, probe_results or [], listings)
-    _sheet_unavailable(book)
-    _sheet_data(book, scope, "PET- und Bag-in-Box-Angebote — Rohdaten", "Alle Daten")
-    _sheet_data(book, listings, "Gesamtes erfasstes Weinsortiment", "Gesamtsortiment")
-    _sheet_method(book, stamp, listings)
+    _sheet_summary(book, scope, listings, stamp, t)
+    _sheet_segments(book, scope, t)
+    _sheet_by_format(book, scope, t)
+    _sheet_by_retailer(book, scope, t)
+    _sheet_competing_formats(book, listings, t)
+    _sheet_pet(book, probe_results or [], listings, t)
+    _sheet_unavailable(book, t)
+    _sheet_data(book, scope, t("data_title"), t("sheet_data"), t)
+    _sheet_data(book, listings, t("all_title"), t("sheet_all"), t)
+    _sheet_method(book, stamp, listings, t)
 
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

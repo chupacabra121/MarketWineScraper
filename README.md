@@ -464,9 +464,21 @@ python -m winescraper.de.run --workbook
 ```
 
 `run` writes `exports/germany/`: the in-scope rows, the full catalogue they were
-separated from, JSONL, and `Deutscher-Weinmarkt-PET-BagInBox.xlsx`. Useful
-flags: `--source lidl`, `--limit N`, `--delay`, `--no-cache`, `--no-check`,
-`--no-pet-probe`.
+separated from, JSONL, and the workbook in **both German and English** —
+`Deutscher-Weinmarkt-PET-BagInBox.xlsx` and
+`German-Wine-Market-PET-BagInBox.xlsx`. Same sheets, same rows, same numbers;
+only the wording differs. `--language en` builds just one.
+
+Every user-visible string lives in `winescraper/de/text.py` rather than in the
+sheet code, and `tests/test_de_text.py` holds the two vocabularies to the same
+shape — a footnote added to one language has to be added to the other, and a
+German string left sitting in the English column fails the suite. Trade and
+legal terms are not translated, because translating them makes them
+unfindable: *Pfand*, *VerpackG*, *Bag-in-Box*, *Literflasche*, *Grundpreis*
+keep their German names and are glossed on first use.
+
+Other useful flags: `--source lidl`, `--limit N`, `--delay`, `--no-cache`,
+`--no-check`, `--no-pet-probe`.
 
 ### What it found
 

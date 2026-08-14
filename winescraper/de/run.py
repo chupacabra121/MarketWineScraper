@@ -104,10 +104,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--workbook", action="store_true",
                         help="also build the Excel workbook")
+    parser.add_argument("--language", action="append", choices=("de", "en"),
+                        help="workbook language, repeatable; default both")
     parser.add_argument("--no-pet-probe", action="store_true",
                         help="skip the recorded search for PET wine")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
+    # Both languages by default: the study is of the German market and reads
+    # naturally in German, but the people commissioning it may not.
+    args.language = args.language or ["de", "en"]
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -143,9 +148,12 @@ def main(argv: list[str] | None = None) -> int:
             results = asyncio.run(_probe())
             print(summarise_probe(results))
 
-        path = build_workbook(listings, args.out / "Deutscher-Weinmarkt-PET-BagInBox.xlsx",
-                              probe_results=results)
-        print(f"wrote {path}")
+        names = {"de": "Deutscher-Weinmarkt-PET-BagInBox.xlsx",
+                 "en": "German-Wine-Market-PET-BagInBox.xlsx"}
+        for language in args.language:
+            path = build_workbook(listings, args.out / names[language],
+                                  probe_results=results, language=language)
+            print(f"wrote {path}")
     return 0
 
 
