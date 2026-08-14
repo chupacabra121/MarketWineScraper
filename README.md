@@ -455,8 +455,8 @@ tests rather than as remembered intentions.
 
 A second, self-contained study lives in `winescraper/de/`. It asks a narrower
 question than the Romanian scraper does — **what does wine in a PET bottle or a
-bag-in-box cost in German retail** — and answers it with its own vocabulary,
-its own deposit rules and its own Excel deliverable.
+bag-in-box cost in German retail** — and answers it with its own vocabulary, its
+own deposit rules and its own Excel deliverable.
 
 ```bash
 python -m pip install -e .              # brotli is now a hard dependency
@@ -470,40 +470,59 @@ flags: `--source lidl`, `--limit N`, `--delay`, `--no-cache`, `--no-check`,
 
 ### What it found
 
-Verified live on 2026-08-14, 806 wines collected, 191 of them PET or
-bag-in-box.
+Verified live on 2026-08-14. **4,176 wines collected, 293 of them bag-in-box.**
 
-- **Bag-in-Box is a real German format with a settled price structure.** The
-  3-litre box is the standard gebinde — 138 of the 159 still-wine offers. Prices
-  run 4.99–39.00 € (median 11.99), which is **1.66–13.00 €/litre, median 4.00**.
-- **The entry price is 4.99 € for 3 litres**, Lidl's Vino Tinto / Vino Rosado /
-  Vino Blanco. That is 1.66 €/litre, or **1.25 € per 0.75-litre-bottle
-  equivalent** — the floor of the German market.
-- **Wine in PET bottles is not sold in German retail.** Not one offer, in any
-  source. This is a null result, so it is evidenced rather than asserted: see
-  below.
-- **Price per litre falls with gebinde size**, as it does for drinks generally:
-  1.5 l runs 6.66–9.33 €/l, 3 l 1.66–13.00, 5 l 3.16–5.50.
-- **The cheapest wine per litre is not bag-in-box at all** — it is the 1.5-litre
-  Getränkekarton at Lidl, 1.99 € for 1.5 l (1.33 €/l), undercutting even the
-  4.99 € box.
+- **Bag-in-Box is a real German format with a settled price structure**, carried
+  by every reachable chain except EDEKA. The 3-litre box is the standard
+  gebinde — 211 of the 259 still-wine offers. Prices run **4.99–39.00 €**
+  (median 11.49), which is **1.66–13.00 €/litre, median 3.83**.
+- **The entry price is 4.99 € for 3 litres**, at both Lidl and Globus. That is
+  1.66 €/litre, or **1.25 € per 0.75-litre-bottle equivalent** — the floor of
+  the German market, and it is now confirmed by two chains rather than one.
+- **Wine in PET bottles is not sold in German retail.** Not one offer in 4,176.
+  This is a null result, so it is evidenced twice over — see below.
+- **Bag-in-box is a thin slice of a supermarket range but a deep one at a
+  specialist.** Globus lists 2,221 wines and 26 boxes (1.2%); Netto lists 170
+  and 32 (19%); Wein Schäpers sells nothing else.
+- **The box undercuts the bottle it competes with.** The German 1-litre
+  Literflasche — the entry format bag-in-box is priced against — runs a median
+  4.99 €/litre against the 3-litre box's 3.83.
+- **The cheapest wine per litre is neither format.** It is the 1.5-litre
+  Getränkekarton at Lidl, 1.99 € for 1.5 l (1.33 €/l).
 
-### Retailer status
+### Coverage: every chain on the Wikipedia list
 
-| Retailer | Channel | Coverage | How |
-| --- | --- | --- | --- |
-| **Lidl** | Discounter | 636 wines, 25 bag-in-box | Public search API at `lidl.de/q`. States the container in the product title, publishes its own price per litre, and exposes a `Flaschengröße` facet that reaches the large formats directly. The only mainstream chain reachable. |
-| **METRO Deutschland** | Cash & carry | 24 wines, 20 bag-in-box | Same `searchdiscover` API as the Romanian sibling, store 00015. **Net trade prices**: unlike Romania, the German site returns `sellingPriceInfo: null` to an anonymous caller, so only the search response's ex-VAT price is available. Never mixed with the consumer figures. |
-| **Wein Schäpers** | Fachhandel | 66 bag-in-box | Shopware 6 bag-in-box category. |
-| **WirWinzer** | Fachhandel | 66 bag-in-box | Winery-direct marketplace; sells boxes in multi-packs. |
-| **Weinfreunde** | Fachhandel | 14 bag-in-box | Hawesko group's volume shop; stands in for hawesko.de, which blocks us. |
-| Kaufland, REWE, ALDI SÜD, Hawesko, Vinatis | — | none | HTTP 403 to datacentre addresses, plain HTTP and real Chromium alike. |
-| Getränke Hoffmann, trinkgut, Fristo | Getränkemarkt | none | **Publish no prices at all.** The beverage chains where bag-in-box sells hardest run store-locator sites with a weekly leaflet. That is a fact about German beverage retail, not a scraping failure. |
-| Vinello | Fachhandel | none | Lists 59 boxes but server-renders a price for 3; product pages answer 410. A 3-of-59 sample is not a price point. |
-| Amazon.de, Müller | — | none | Return the products and strip or defer every price. |
+Each chain on [*List of supermarket chains in
+Germany*](https://en.wikipedia.org/wiki/List_of_supermarket_chains_in_Germany)
+was checked individually, along with the beverage chains and wine specialists
+that carry the formats.
 
-Every exclusion is carried into the workbook's *Nicht erreichbar* sheet, so a
-reader can tell "does not stock the format" from "could not be reached".
+| Retailer | Channel | Wines | Boxes | How |
+| --- | --- | --- | --- | --- |
+| **Globus** | Hypermarket | 2,221 | 26 | Shopware 6, the full wine catalogue across four colour categories. The largest source here and the only complete supermarket range reachable. Files boxes in the ordinary categories, marked only by "BIB" in the product name. |
+| **Lidl** | Discounter | 635 | 25 | Public search API at `lidl.de/q`. States the container in the title, publishes its own price per litre, and exposes a `Flaschengröße` facet that reaches the large formats directly. |
+| **NORMA** | Discounter | 458 | 40 | norma24.de, the group's online shop. schema.org microdata gives price and SKU structurally. |
+| **Combi** | Hypermarket | 455 | 4 | Bartels-Langness delivery shop; stands in for famila, whose own sites carry no catalogue. |
+| **Netto Marken-Discount** | Discounter | 170 | 32 | Intershop `ViewMMPStandardCatalog-Browse`, whole wine category in one call at `PageSize=500`. Needs the homepage's cookies first — every path is a 403 without them. |
+| **EDEKA** | Supermarket | 67 | 0 | edeka24.de. Categories render 30 products and page by scrolling with no working page parameter, so coverage is the first 30 of each. |
+| **METRO** | Cash & carry | 24 | 20 | Same `searchdiscover` API as the Romanian sibling, store 00015. **Net trade prices** — the German site returns `sellingPriceInfo: null` anonymously, so only the search response's ex-VAT price is available. Never mixed with consumer figures. |
+| **Wein Schäpers** | Specialist | 66 | 66 | Shopware 6 bag-in-box category. |
+| **WirWinzer** | Specialist | 66 | 66 | Winery-direct marketplace; boxes sold in multi-packs. |
+| **Weinfreunde** | Specialist | 14 | 14 | Hawesko group's volume shop; stands in for hawesko.de, which blocks us. |
+
+Twenty-seven more were checked and yielded nothing. The reasons are not
+interchangeable, and the workbook's *Nicht erfasst* sheet keeps them apart:
+
+- **No online catalogue at all** (the majority): ALDI Nord, Penny, tegut, HIT,
+  famila, Selgros, Netto (Salling), Alnatura, Bio Company, CAP, nahkauf, nah &
+  gut, nah & frisch — plus the beverage chains **Getränke Hoffmann, trinkgut
+  and Fristo**, which is where bag-in-box sells hardest. These run a store
+  finder and a weekly leaflet; the price exists only on the shelf. That is a
+  fact about German grocery retail, not a scraping failure, and it is the
+  single biggest limit on this study.
+- **Catalogue exists, datacentre addresses refused** (HTTP 403): Kaufland,
+  REWE, Marktkauf, ALDI SÜD, Hawesko, Vinatis.
+- **Reachable, prices not in the response**: Amazon.de, Müller, Vinello.
 
 ### The Pfand, and why PET would have one
 
@@ -519,14 +538,34 @@ deposit question apart, exactly as the Romanian `deposit.py` does for SGR.
 ### Establishing a null result
 
 Half the brief was PET, and the collection returned none. An absence produced by
-a filter is a weak claim, so `winescraper/de/petprobe.py` searches for it
-directly — seven phrasings a German retailer would use, across Lidl and METRO —
-and records what came back. 357 products, 5 of them genuinely PET, **none of
-them wine**: the PET hits are raspberry syrup and Acqua Panna. The supply side
-confirms the shape: Flaschenland and comparable suppliers sell empty 250 ml and
-750 ml PET wine bottles to wineries and caterers, unfilled. In German retail the
-large gebinde is the box and the small one is glass; PET holds no shelf position
-between them.
+a filter is a weak claim, so it rests on two independent legs:
+
+- **A census.** Every one of the 4,176 collected wines was classified. None is
+  in PET. Globus alone contributes 2,221 examined listings.
+- **A targeted search.** `winescraper/de/petprobe.py` asks Lidl and METRO for it
+  by name — seven phrasings a German retailer would use — and records what came
+  back. 357 products, 5 genuinely PET, **none of them wine**: the PET hits are
+  raspberry syrup and Acqua Panna.
+
+The supply side confirms the shape: Flaschenland and comparable suppliers sell
+empty 250 ml and 750 ml PET wine bottles to wineries and caterers, unfilled. In
+German retail the large gebinde is the box and the small one is glass; PET holds
+no shelf position between them.
+
+### Reading the container off a listing
+
+`packaging.py` classifies from title, description, category and image alt text,
+in that order of preference, and leaves the field `unknown` when nothing says —
+which is the common case for an ordinary 0.75 L bottle and is reported as such
+rather than being counted as glass.
+
+One rule is inferred rather than read, and it is measured rather than assumed:
+**at three litres and above the container is a bag-in-box.** Of the 216
+three-litre wines collected, 191 say so outright, 24 name no container, and
+exactly one is a bottle — a Prosecco Jeroboam at METRO that writes "3 l Flasche"
+and is caught by the glass rule first. At five litres it is 28 of 28. The
+threshold stops at three: two-litre German wine is routinely glass, and
+extending the rule downwards would start inventing boxes.
 
 ### Data quality
 
@@ -536,22 +575,34 @@ and a price is checked against the retailer that published it.
 German price-labelling law requires a Grundpreis, so most listings advertise
 their own price per litre — computed server-side from the same price and size we
 parsed. `winescraper.de.validate` compares it against ours on every row that has
-both. **776 of 806 rows cross-check, and all of them agree.**
+both. **4,108 of 4,176 rows cross-check, and all of them agree.**
 
-That check earned its place. Wein Schäpers prints the price and the Grundpreis
-in adjacent elements; the parser took the cheaper of the two out of the combined
-block, and recorded a 15.17 € box at 5.06 €. Every affected row looked entirely
-plausible on its own — only the retailer's own arithmetic showed it. Two other
-faults came from the same direction and are now tests:
+That check earned its place five times over. Every one of these was invisible in
+the output and found only by the retailer's own arithmetic:
 
-- Lidl reports a six-bottle Bordeaux case as **4.5 litres**, which the
-  size-implies-a-box rule read as a large format. Pack size and unit size are
-  now kept apart.
-- WirWinzer's `data-bottle-count` sometimes counts boxes and sometimes counts
-  0.75-litre equivalents — "4er Paket … (12 L)" reports 4, but "BiB-Paket …
-  (9 L)" reports 12. Dividing blindly produced a 0.75-litre bag-in-box. The
-  count is now trusted only when it divides out to something that could be a
-  box, and the split is left unclaimed otherwise.
+- **Wein Schäpers** prints price and Grundpreis in adjacent elements; the parser
+  took the cheaper of the two and recorded a 15.17 € box at 5.06 €.
+- **Globus** renders a discounted price as `3,49 € 2,49 €` inside one element,
+  struck-through first. Taking the first was wrong on exactly the rows where
+  being wrong matters most. The current price is now the one that reproduces the
+  shop's own per-litre figure.
+- **NORMA** publishes `itemprop="price" content="4.2"`. The price parser required
+  two decimal places and fell through to an integer match, reading it as 4 — a
+  20-cent error on every one-decimal price in the shop.
+- **Lidl** reports a six-bottle Bordeaux case as 4.5 litres, which the
+  size-implies-a-box rule read as a large format. Pack size and unit size are now
+  kept apart.
+- **WirWinzer**'s `data-bottle-count` counts boxes on one listing and 0.75-litre
+  equivalents on the next — "4er Paket … (12 L)" reports 4, "BiB-Paket … (9 L)"
+  reports 12. Dividing blindly produced a 0.75-litre bag-in-box. The count is now
+  trusted only when it divides out to something that could be a box.
+
+Two further traps are recorded as comments where they bite. Combi mistypes one
+listing's size as "750 l"; the size is correctly rejected, but the fallback then
+read the "/1 l" of the unit price as a one-litre bottle, so a source that names
+the volume field is now believed even when its answer is `None`. And Combi's own
+category path is "bier-wein-spirituosen", which the non-wine filter rejected —
+dropping the entire aisle it was meant to describe.
 
 Glühwein, Sangria, sparkling and dessert wine are collected but held out of the
 still-wine figures: Glühwein sells in the same 10-litre box at a third of the

@@ -130,6 +130,14 @@ def _litre_prices(listings: Iterable[Listing]) -> list[float]:
     return [x.price_per_litre for x in listings if x.price_per_litre is not None]
 
 
+CHANNEL_LABELS = {
+    "supermarkt": "Supermarkt", "discounter": "Discounter",
+    "getraenkemarkt": "Getränkemarkt", "fachhandel": "Fachhandel",
+    "cash_and_carry": "Cash & Carry", "online": "Online",
+    "drogerie": "Drogerie", "bio": "Bio", "convenience": "Convenience",
+}
+
+
 # --- sheets ------------------------------------------------------------------
 def _sheet_summary(book: Workbook, scope: list[Listing], everything: list[Listing],
                    stamp: str) -> None:
@@ -226,7 +234,10 @@ def _sheet_by_format(book: Workbook, scope: list[Listing]) -> None:
             out.append((
                 f"{volume:g} l" if volume else "ohne Angabe",
                 pkg.LABELS.get(group[0].packaging, ""),
-                stats["n"], prices[0] if prices else None,
+                # len(group), not stats["n"]: a row with no size has no price
+                # per litre, and showing its offer count as zero would read as
+                # an empty row rather than as "size not stated".
+                len(group), prices[0] if prices else None,
                 statistics.median(prices) if prices else None,
                 prices[-1] if prices else None,
                 stats["min"], stats["median"], stats["max"],
@@ -268,7 +279,7 @@ def _sheet_by_retailer(book: Workbook, scope: list[Listing]) -> None:
         stats = _stats(_litre_prices(group))
         prices = sorted(x.price for x in group if x.price is not None)
         rows.append((
-            label, group[0].channel,
+            label, CHANNEL_LABELS.get(group[0].channel, group[0].channel),
             "netto (B2B)" if group[0].price_basis == "net" else "brutto",
             stats["n"], prices[0] if prices else None,
             prices[-1] if prices else None,
@@ -404,7 +415,7 @@ def _sheet_competing_formats(book: Workbook, everything: list[Listing]) -> None:
     _autosize(sheet, [32, 11, 12, 14, 12, 20])
 
 
-def _sheet_pet(book: Workbook, probe_results: list) -> None:
+def _sheet_pet(book: Workbook, probe_results: list, everything: list[Listing]) -> None:
     sheet = book.create_sheet("PET-Prüfung")
     row = _title(sheet, "PET-Flaschen: gesuchte Belege",
                  "Die Hälfte der Fragestellung. Ergebnis: kein Angebot im Handel.")
@@ -412,16 +423,36 @@ def _sheet_pet(book: Workbook, probe_results: list) -> None:
     row = _note(sheet, row,
                 "Wein in PET-Flaschen wurde in keinem der erreichten deutschen "
                 "Sortimente gefunden. Weil ein Nullbefund aus einem Filter heraus "
-                "wenig wert ist, wurde gezielt danach gesucht — mit den Wörtern, "
-                "die ein deutscher Händler benutzen würde. Die Treffer, die "
-                "tatsächlich PET waren, waren Sirup und Mineralwasser.")
+                "wenig wert ist, steht er hier auf zwei unabhängigen Beinen: dem "
+                "vollständig durchgesehenen Sortiment jeder Quelle, und einer "
+                "gezielten Suche mit den Wörtern, die ein deutscher Händler "
+                "benutzen würde.")
+
+    # The strongest evidence is the census, not the search: 2,221 Globus wines
+    # examined one by one is a firmer denominator than any keyword query.
+    census = []
+    for label, group in sorted(_by(everything, lambda x: x.retailer_label).items()):
+        census.append((
+            label, len(group),
+            sum(1 for x in group if x.packaging == pkg.PET),
+            sum(1 for x in group if x.packaging == pkg.BAG_IN_BOX),
+        ))
+    census.append(("Gesamt", len(everything),
+                   sum(1 for x in everything if x.packaging == pkg.PET),
+                   sum(1 for x in everything if x.packaging == pkg.BAG_IN_BOX)))
+    row = _table(sheet, row,
+                 ["Vollständig durchgesehenes Sortiment", "Weine geprüft",
+                  "davon PET", "davon Bag-in-Box"], census, {2: "#,##0"})
 
     if probe_results:
         rows = [(r.source, r.query, r.hits, r.pet_hits, r.pet_wine_hits, r.example)
                 for r in probe_results]
         row = _table(sheet, row,
-                     ["Quelle", "Suchbegriff", "Treffer", "davon PET",
+                     ["Gezielte Suche", "Suchbegriff", "Treffer", "davon PET",
                       "davon PET-Wein", "Beispieltreffer"], rows)
+        row = _note(sheet, row,
+                    "Die Treffer, die tatsächlich PET waren, waren Himbeersirup "
+                    "und Mineralwasser — kein Wein.")
 
     context = [
         ("Rechtslage", "Seit 1.1.2022 gilt das Einwegpfand von 0,25 € für alle "
@@ -445,24 +476,46 @@ def _sheet_pet(book: Workbook, probe_results: list) -> None:
 
 
 def _sheet_unavailable(book: Workbook) -> None:
-    sheet = book.create_sheet("Nicht erreichbar")
-    row = _title(sheet, "Nicht erfasste Händler",
-                 "Damit „nicht im Datensatz“ nicht mit „führt das Format nicht“ "
-                 "verwechselt wird.")
-    channel_labels = {"supermarkt": "Supermarkt", "discounter": "Discounter",
-                      "getraenkemarkt": "Getränkemarkt", "fachhandel": "Fachhandel",
-                      "online": "Online", "drogerie": "Drogerie"}
-    rows = [(label, channel_labels.get(channel, channel), reason)
-            for _, label, channel, reason in UNAVAILABLE]
-    row = _table(sheet, row, ["Händler", "Kanal", "Grund"], rows)
+    sheet = book.create_sheet("Nicht erfasst")
+    row = _title(sheet, "Geprüfte, aber nicht erfasste Händler",
+                 "Jede Kette der Wikipedia-Liste deutscher Supermarktketten "
+                 "wurde einzeln geprüft. Damit „nicht im Datensatz“ nicht mit "
+                 "„führt das Format nicht“ verwechselt wird.", span=4)
+
+    by_reason: dict[str, list[tuple]] = {}
+    for _, label, channel, reason, detail in UNAVAILABLE:
+        by_reason.setdefault(reason, []).append(
+            (label, CHANNEL_LABELS.get(channel, channel), detail))
+
+    # Grouped by *why*, because the three reasons mean very different things
+    # and lumping them together would read as one uniform failure.
+    order = ["keine Preise online", "blockiert", "Preise clientseitig",
+             "nicht erreichbar"]
+    for reason in order + [r for r in by_reason if r not in order]:
+        entries = by_reason.get(reason)
+        if not entries:
+            continue
+        heading = {
+            "keine Preise online": "Kein Online-Sortiment mit Preisen",
+            "blockiert": "Sortiment vorhanden, Zugriff gesperrt (HTTP 403)",
+            "Preise clientseitig": "Erreichbar, Preise nicht im HTML",
+            "nicht erreichbar": "Domain nicht erreichbar",
+        }.get(reason, reason)
+        cell = sheet.cell(row=row, column=1, value=f"{heading}  ({len(entries)})")
+        cell.font = STRONG
+        row += 1
+        row = _table(sheet, row, ["Händler", "Kanal", "Befund"],
+                     sorted(entries))
+
     _note(sheet, row,
-          "Die drei Getränkemarktketten sind der wichtigste Fall: Getränke "
-          "Hoffmann, trinkgut und Fristo führen Bag-in-Box im Regal, "
-          "veröffentlichen aber grundsätzlich keine Preise im Netz. Das ist "
-          "keine technische Hürde, sondern ein Merkmal des deutschen "
-          "Getränkefachhandels — die Preise stehen nur im Wochenprospekt und am "
-          "Regal.", span=3)
-    _autosize(sheet, [26, 18, 96])
+          "Der Befund ist nicht in erster Linie Bot-Abwehr, sondern die "
+          "Struktur des deutschen Lebensmittelhandels: die meisten Ketten "
+          "betreiben überhaupt keinen Online-Katalog mit Preisen, sondern "
+          "Marktfinder und Wochenprospekt. Der Preis existiert nur am Regal. "
+          "Besonders relevant für diese Studie sind Getränke Hoffmann, trinkgut "
+          "und Fristo: dort verkauft sich Bag-in-Box am stärksten, und dort "
+          "steht kein einziger Preis im Netz.", span=4)
+    _autosize(sheet, [30, 18, 104, 14])
 
 
 def _sheet_data(book: Workbook, listings: list[Listing], title: str,
@@ -502,7 +555,7 @@ def _sheet_method(book: Workbook, stamp: str, everything: list[Listing]) -> None
     row = _title(sheet, "Methodik und Belastbarkeit", f"Erhebung {stamp}")
 
     from .sources import all_sources
-    rows = [(cls.label, cls.channel,
+    rows = [(cls.label, CHANNEL_LABELS.get(cls.channel, cls.channel),
              "netto (B2B)" if cls.price_basis == "net" else "brutto",
              sum(1 for x in everything if x.retailer == key), cls.note)
             for key, cls in all_sources().items()]
@@ -558,7 +611,7 @@ def build_workbook(listings: list[Listing], path: Path,
     _sheet_by_format(book, scope)
     _sheet_by_retailer(book, scope)
     _sheet_competing_formats(book, listings)
-    _sheet_pet(book, probe_results or [])
+    _sheet_pet(book, probe_results or [], listings)
     _sheet_unavailable(book)
     _sheet_data(book, scope, "PET- und Bag-in-Box-Angebote — Rohdaten", "Alle Daten")
     _sheet_data(book, listings, "Gesamtes erfasstes Weinsortiment", "Gesamtsortiment")

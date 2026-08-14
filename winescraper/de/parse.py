@@ -252,8 +252,15 @@ def parse_grapes(text: str) -> list[str]:
 _PRICE = re.compile(r"(\d{1,4})(?:[.\s](\d{3}))?[,.](\d{2})")
 
 
+#: A bare machine-readable decimal, as schema.org microdata carries it: "4.2",
+#: "40", "6.80". Matched before the German patterns because those require two
+#: decimal places, and a one-decimal price like NORMA's ``content="4.2"`` would
+#: otherwise fall through to the last-resort integer match and be read as 4.
+_BARE_NUMBER = re.compile(r"^\s*(\d{1,6}(?:\.\d{1,4})?)\s*$")
+
+
 def parse_price(value) -> float | None:
-    """A EUR price from a number or from German-formatted text ("1.234,56 €")."""
+    """A EUR price from a number, a bare decimal, or German text ("1.234,56 €")."""
     if value is None:
         return None
     if isinstance(value, (int, float)):
@@ -261,6 +268,10 @@ def parse_price(value) -> float | None:
     text = str(value).replace("\xa0", " ").strip()
     if not text:
         return None
+    bare = _BARE_NUMBER.match(text)
+    if bare:
+        number = float(bare.group(1))
+        return round(number, 2) if number > 0 else None
     match = _PRICE.search(text)
     if match:
         whole = match.group(1) + (match.group(2) or "")

@@ -70,8 +70,10 @@ def fold(text: str) -> str:
 
 _BAG_IN_BOX = re.compile(
     r"\bbag in box\b|\bbaginbox\b|\bbib\b|\bwein ?schlauch\b|\bschlauchwein\b"
-    r"|\bwein ?box\b|\bbordeaux ?box\b|\bcubi\b|\bvinbox\b|\bboxwein\b"
-    r"|\bwein im karton mit (?:zapf|hahn)|\bzapfhahn\b|\bfasswein\b",
+    # German and English spellings of the same thing, both on German shelves:
+    # Combi lists a "Chenin Blanc Wine Box" beside a "Weiß & Süß BIB".
+    r"|\bwein ?box\b|\bwine ?box\b|\bbordeaux ?box\b|\bcubi\b|\bvinbox\b"
+    r"|\bboxwein\b|\bwein im karton mit (?:zapf|hahn)|\bzapfhahn\b|\bfasswein\b",
 )
 
 # "PET" is the label; "Kunststoffflasche" and "Plastikflasche" are what a
@@ -118,11 +120,17 @@ _GLASS = re.compile(
 #: 0.75 L bottles total 4.5 litres and are still six glass bottles.
 _MULTIPACK_HINT = re.compile(r"\b\d{1,2} ?[x×] ?\d|\bpaket\b|\bset\b|\bkiste\b|\bkarton \d")
 
-# Sizes that are only ever bag-in-box or keg in a German wine aisle. A 5 or 10
-# litre wine is not sold in a glass bottle at retail, and above 3 litres the
-# deposit stops applying anyway, so this only ever moves a row between two
-# pfandfrei classes.
-_BOX_ONLY_SIZES_L = (5.0, 10.0, 15.0, 20.0)
+# At three litres and above, the box is the rule and the bottle the exception.
+# Measured on the collected data rather than assumed: of the 216 three-litre
+# wines, 191 say bag-in-box outright, 24 name no container at all, and exactly
+# one is a bottle — a Prosecco Jeroboam at METRO that writes "3 l Flasche" and
+# is caught by the glass rule before the size rule is ever reached. At five and
+# ten litres it is 28 of 28 and 8 of 8.
+#
+# The threshold stops at three. Two-litre wine in Germany is routinely a glass
+# bottle — the Greek Imiglykos lines at Globus are the common case — so
+# extending the rule downwards would start inventing boxes.
+_BOX_FROM_L = 3.0
 
 
 def classify(name: str, *, description: str = "", volume_l: float | None = None,
@@ -157,9 +165,9 @@ def classify(name: str, *, description: str = "", volume_l: float | None = None,
 
     # Size as a last resort, and only where the size is decisive on its own —
     # which it is not for a multipack, whose stated litres are the case total.
-    if volume_l is not None and not _MULTIPACK_HINT.search(haystack):
-        if volume_l in _BOX_ONLY_SIZES_L or volume_l > 3.0:
-            return BAG_IN_BOX
+    if (volume_l is not None and volume_l >= _BOX_FROM_L
+            and not _MULTIPACK_HINT.search(haystack)):
+        return BAG_IN_BOX
     return UNKNOWN
 
 

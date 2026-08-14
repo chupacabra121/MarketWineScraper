@@ -25,10 +25,23 @@ class TestBagInBox:
         ):
             assert pkg.classify(name) == pkg.BAG_IN_BOX, name
 
-    def test_a_five_litre_wine_is_a_box_even_when_unsaid(self):
-        # No German retailer sells five litres of wine in a glass bottle, and
-        # above three litres nothing carries a deposit either way.
+    def test_three_litres_and_up_is_a_box_even_when_unsaid(self):
+        # Measured, not assumed: of 216 three-litre wines collected, 191 say
+        # bag-in-box, 24 say nothing, and one is a bottle that says so.
         assert pkg.classify("Rotwein trocken 5 Liter", volume_l=5.0) == pkg.BAG_IN_BOX
+        assert pkg.classify("Maybach Grauer Burgunder", volume_l=3.0) == pkg.BAG_IN_BOX
+        assert pkg.classify("Berg in Box, Rosé feinherb, 3 L", volume_l=3.0) == pkg.BAG_IN_BOX
+
+    def test_a_stated_bottle_beats_the_size_rule(self):
+        # The one three-litre exception in the data: a Prosecco Jeroboam.
+        assert pkg.classify(
+            "Valdo Prosecco Valdobbiadene Superiore D.O.C.G. Marca Oro 3 l Flasche",
+            volume_l=3.0) == pkg.GLASS
+
+    def test_two_litres_is_not_assumed_to_be_a_box(self):
+        # Two-litre wine in Germany is routinely glass — the Greek Imiglykos
+        # lines at Globus — so the rule stops at three.
+        assert pkg.classify("Black Label Imiglykos, Rotwein", volume_l=2.0) == pkg.UNKNOWN
 
     def test_a_six_bottle_case_is_not_a_box(self):
         # Lidl reports this case as 4.5 litres, which the size rule would read

@@ -118,6 +118,15 @@ class TestPrice:
     def test_german_number_format(self, text, expected):
         assert P.parse_price(text) == expected
 
+    @pytest.mark.parametrize("text,expected", [
+        ("4.2", 4.20), ("6.8", 6.80), ("40", 40.0), ("2.49", 2.49),
+    ])
+    def test_bare_decimals_from_microdata(self, text, expected):
+        # NORMA publishes itemprop="price" content="4.2". Requiring two decimal
+        # places dropped the tenths and read that as 4 — a 20-cent error on
+        # every one-decimal price in the shop, and invisible in the output.
+        assert P.parse_price(text) == expected
+
 
 class TestOrigin:
     def test_country_from_name_or_region(self):
