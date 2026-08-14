@@ -61,6 +61,18 @@ def write_outputs(listings: list[Listing], out_dir: Path) -> dict[str, Path]:
                 writer.writerow(listing.to_row())
         paths[label] = csv_path
 
+    # The wine x store matrix, in the layout the study is compared against:
+    # 0 where a store does not list the wine, so the file pastes straight into
+    # an existing sheet.
+    from . import matrix as mx
+    scope = [x for x in listings if pkg.is_in_scope(x.packaging)]
+    stores = mx.stores_in(scope)
+    grid = mx.to_csv_rows(mx.build(mx.top_per_store(scope), scope), stores)
+    csv_path = out_dir / "german-bib-price-matrix.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as handle:
+        csv.writer(handle).writerows(grid)
+    paths["matrix"] = csv_path
+
     json_path = out_dir / "german-wine-pet-bib.jsonl"
     with json_path.open("w", encoding="utf-8") as handle:
         for listing in listings:

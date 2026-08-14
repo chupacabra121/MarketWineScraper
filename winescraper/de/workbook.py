@@ -25,6 +25,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from . import brands
+from . import matrix
 from . import packaging as pkg
 from .model import EXPORT_COLUMNS, Listing
 from .sources import UNAVAILABLE
@@ -345,18 +346,6 @@ _EXCLUSION_KEYS = {
 }
 
 
-def _rank_key(listing: Listing) -> tuple:
-    """Sort order for the cheapest-first ranking.
-
-    Ties on price per litre are the normal case rather than the exception —
-    Lidl prices three colours of its own-brand box identically, and Schäpers
-    five — so the tie-break has to be deterministic or the sheet reshuffles
-    between runs for no reason. Cheapest per litre first, then the smaller pack
-    price, then the name.
-    """
-    return (listing.price_per_litre, listing.price or 0.0, listing.name)
-
-
 def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
                     per_store: int = 3) -> None:
     """The three cheapest bag-in-box wines at each store, per litre.
@@ -390,7 +379,7 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
     excluded: list[tuple] = []
     ranked_pairs: list[tuple[str, Listing]] = []
     for label, group in sorted(_by(boxes, lambda x: x.retailer_label).items()):
-        ranked = sorted([x for x in group if id(x) in eligible], key=_rank_key)
+        ranked = sorted([x for x in group if id(x) in eligible], key=matrix.rank_key)
         top = ranked[:per_store]
         ranked_pairs.extend((label, x) for x in top)
         for position, listing in enumerate(top, start=1):
@@ -408,7 +397,7 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
 
         # Anything cheaper than the third-placed wine that a filter removed.
         ceiling = top[-1].price_per_litre if top else float("inf")
-        for listing in sorted(group, key=_rank_key):
+        for listing in sorted(group, key=matrix.rank_key):
             if id(listing) in eligible or listing.price_per_litre > ceiling:
                 continue
             reason = (t("excl_pack") if listing.is_pack
@@ -487,6 +476,32 @@ def _sheet_private_label(book: Workbook, ranked: list[tuple[str, Listing]],
 
     sheet.freeze_panes = sheet.cell(row=header_row + 1, column=1)
     _autosize(sheet, [22, 46, 13, 30, 38, 62, 46, 46, 46])
+
+
+def _sheet_matrix(book: Workbook, ranked: list[tuple[str, Listing]],
+                  scope: list[Listing], t: Texts) -> None:
+    """Wine × store, EUR per litre, 0 where a store does not list it."""
+    sheet = book.create_sheet(t("sheet_matrix"))
+    stores = sorted({x.retailer_label for x in scope
+                     if x.packaging == pkg.BAG_IN_BOX})
+    span = 3 + len(stores) + 2
+    row = _title(sheet, t("matrix_title"), t("matrix_sub"), span=span)
+    row = _note(sheet, row, t("matrix_note"), span=span)
+    row = _note(sheet, row, t("matrix_finding"), span=span)
+
+    rows = matrix.build(ranked, scope, language=t.language)
+    body = []
+    for record in rows:
+        body.append(
+            [record.packaging_label, record.brand, record.product]
+            + [record.prices.get(store, 0) for store in stores]
+            + [record.stores, record.spread])
+    money = {index: EUR_L for index in range(4, 4 + len(stores))}
+    row = _table(sheet, row,
+                 [t("h_packaging"), t("h_brand_owner"), t("h_wine")] + stores
+                 + [t("h_stores_count"), t("h_spread")],
+                 body, money)
+    _autosize(sheet, [7, 22, 52] + [13] * len(stores) + [9, 15])
 
 
 def _sheet_competing_formats(book: Workbook, everything: list[Listing],
@@ -680,6 +695,7 @@ def build_workbook(listings: list[Listing], path: Path,
     _sheet_summary(book, scope, listings, stamp, t)
     ranked = _sheet_cheapest(book, scope, t)
     _sheet_private_label(book, ranked, t)
+    _sheet_matrix(book, ranked, scope, t)
     _sheet_segments(book, scope, t)
     _sheet_by_format(book, scope, t)
     _sheet_by_retailer(book, scope, t)

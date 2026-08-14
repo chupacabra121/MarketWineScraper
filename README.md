@@ -469,6 +469,17 @@ separated from, JSONL, and the workbook in **both German and English** —
 `German-Wine-Market-PET-BagInBox.xlsx`. Same sheets, same rows, same numbers;
 only the wording differs. `--language en` builds just one.
 
+A *Price matrix* sheet lays the same 27 out as one row per wine and one column
+per store, EUR/litre, `0` where a store does not list it — the layout the study
+is compared against, also written to `german-bib-price-matrix.csv` so it pastes
+straight into an existing sheet. Its value is what a per-store ranking cannot
+show: where the *same* wine costs different money. Wines are merged across shops
+on brand line, grape and container size, because no retailer publishes an
+article number and each writes the name its own way — "MAYBACH Grauer Burgunder
+3-l-Bag-in-Box trocken, Weißwein 2025" at Lidl and "Maybach Grauer Burgunder
+trocken 12,9 % vol 3 Liter Bag in Box" at Netto are one product. Unbranded
+listings are never merged: "3-litre Chardonnay" describes a dozen wines.
+
 A *Private label or not* sheet judges each of those 27 wines and links a source
 for every claim. The judgements are hand-collected and committed in
 `winescraper/de/brands.py`, in the same spirit as `decisions.jsonl` on the

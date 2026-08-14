@@ -8,7 +8,7 @@ fires constantly: Lidl prices three colours of its own-brand box identically.
 
 from winescraper.de import packaging as pkg
 from winescraper.de.model import Listing
-from winescraper.de.workbook import _rank_key
+from winescraper.de.matrix import rank_key as _rank_key
 
 
 def box(name, price, volume=3.0, product_type="still", retailer="lidl",
@@ -168,3 +168,61 @@ class TestBrandEvidence:
         unresolved = sum(1 for r in EVIDENCE if r.private_label is None)
         assert (yes, no, unresolved) == (6, 15, 6)
         assert yes + no + unresolved == 27
+
+
+class TestMatrixMatching:
+    """Merging the same wine across shops is the matrix's only hard problem:
+    no retailer publishes an article number, and each writes the name its own
+    way. Merge too eagerly and two different wines share a row; too timidly and
+    the matrix is a diagonal."""
+
+    def test_one_wine_written_three_ways_gets_one_key(self):
+        from winescraper.de.matrix import line_key
+        lidl = box("MAYBACH Grauer Burgunder 3-l-Bag-in-Box trocken, Weißwein 2025",
+                   11.49, retailer="lidl")
+        netto = box("Maybach Grauer Burgunder trocken 12,9 % vol 3 Liter Bag in Box",
+                    11.49, retailer="netto")
+        schaepers = box("Maybach Grauer Burgunder QbA, trocken, 2024, Bag-in-Box, 3,0l",
+                        11.49, retailer="schaepers")
+        assert line_key(lidl) == line_key(netto) == line_key(schaepers)
+
+    def test_different_grapes_of_one_brand_stay_apart(self):
+        from winescraper.de.matrix import line_key
+        assert line_key(box("Maybach Riesling QbA 3-l-Bag-in-Box", 9.99)) != \
+               line_key(box("Maybach Grauer Burgunder 3-l-Bag-in-Box", 11.49))
+
+    def test_different_sizes_of_one_wine_stay_apart(self):
+        # A 3-litre and a 5-litre box are different products at different
+        # litre prices, and merging them would average two real numbers.
+        from winescraper.de.matrix import line_key
+        assert line_key(box("Grand Sud Merlot Bag-in-Box", 9.99, volume=3.0)) != \
+               line_key(box("Grand Sud Merlot Bag-in-Box", 15.99, volume=5.0))
+
+    def test_sauvignon_blanc_is_not_read_as_cabernet_sauvignon(self):
+        from winescraper.de.matrix import line_key
+        assert line_key(box("Maybach Sauvignon Blanc feinherb", 11.49))[1] == \
+               "sauvignon blanc"
+        assert line_key(box("CIMAROSA Cabernet Sauvignon Chile", 12.99))[1] == \
+               "cabernet sauvignon"
+
+    def test_an_unbranded_wine_is_never_merged(self):
+        # "3-litre Chardonnay" describes a dozen wines; without a brand there
+        # is nothing to match on, and the key says so with None.
+        from winescraper.de.matrix import line_key
+        assert line_key(box("Chardonnay, Weißwein", 8.99))[0] is None
+
+    def test_the_matrix_prices_a_wine_at_every_store_that_sells_it(self):
+        from winescraper.de import matrix
+        everything = [
+            box("MAYBACH Grauer Burgunder 3-l-Bag-in-Box", 11.49, retailer="lidl"),
+            box("Maybach Grauer Burgunder trocken 3 Liter Bag in Box", 12.99,
+                retailer="netto"),
+        ]
+        for listing in everything:
+            listing.retailer_label = listing.retailer.title()
+        ranked = [("Lidl", everything[0])]
+        rows = matrix.build(ranked, everything)
+        assert len(rows) == 1
+        assert rows[0].prices == {"Lidl": 3.83, "Netto": 4.33}
+        assert rows[0].stores == 2
+        assert rows[0].spread == 1.13

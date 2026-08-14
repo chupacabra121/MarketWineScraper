@@ -91,6 +91,7 @@ STRINGS: dict[str, dict[str, str]] = {
                        "en": "Cheapest three per store"},
     "sheet_label": {"de": "Eigenmarke oder nicht",
                     "en": "Private label or not"},
+    "sheet_matrix": {"de": "Preismatrix", "en": "Price matrix"},
     "sheet_formats": {"de": "Formatvergleich", "en": "Format comparison"},
     "sheet_pet": {"de": "PET-Prüfung", "en": "PET evidence"},
     "sheet_unavailable": {"de": "Nicht erfasst", "en": "Not covered"},
@@ -419,6 +420,52 @@ STRINGS: dict[str, dict[str, str]] = {
                "Lidl owns its line and has three different wineries fill it, "
                "while Netto carries no own-label box at all and sits at 2.3× "
                "the price on producer brands alone.")},
+
+    # ---------------------------------------------------------------- matrix
+    "matrix_title": {"de": "Preismatrix: Wein × Händler",
+                     "en": "Price matrix: wine × store"},
+    "matrix_sub": {
+        "de": ("Die drei günstigsten Bag-in-Box je Händler, in EUR je Liter. "
+               "0 heißt: bei diesem Händler nicht im Sortiment."),
+        "en": ("The three cheapest bag-in-box wines per store, in EUR per "
+               "litre. 0 means the store does not list it.")},
+    "matrix_note": {
+        "de": ("Jede Zeile ist ein Wein, jede Spalte ein Händler — dadurch "
+               "wird sichtbar, was eine Reihung je Händler nicht zeigen kann: "
+               "wo derselbe Wein unterschiedlich viel kostet. Weine werden "
+               "über Marke, Rebsorte und Gebindegröße zusammengeführt, weil "
+               "kein Händler eine Artikelnummer veröffentlicht und jeder den "
+               "Namen anders schreibt. Unmarkierte Weine werden nie "
+               "zusammengeführt: „3 Liter Chardonnay“ beschreibt ein Dutzend "
+               "verschiedener Weine."),
+        "en": ("One row per wine, one column per store, which shows what a "
+               "per-store ranking cannot: where the same wine costs different "
+               "money. Wines are merged across shops on brand line, grape and "
+               "container size, because no retailer publishes an article "
+               "number and each writes the name its own way. Unbranded wines "
+               "are never merged — '3-litre Chardonnay' describes a dozen "
+               "different wines.")},
+    "h_stores_count": {"de": "Händler", "en": "Stores"},
+    "h_spread": {"de": "Spanne (max/min)", "en": "Spread (max/min)"},
+    "matrix_finding": {
+        "de": ("Vier der 27 Weine werden von mehr als einem Händler geführt, "
+               "und dort liegt die Information: Maybach Grauer Burgunder "
+               "kostet bei Globus, Lidl und Netto exakt gleich viel (3,83 €/l) "
+               "— ein Herstellerpreis, den keiner unterbietet. Bree Chardonnay "
+               "dagegen kostet bei Netto 14 % mehr als beim Fachhändler "
+               "Schäpers. Über das gesamte Bag-in-Box-Sortiment hinweg ist die "
+               "Spreizung größer: Grand Sud Merlot, in keiner Top-3, reicht "
+               "von 3,33 €/l bei Lidl bis 5,16 €/l bei Combi — derselbe "
+               "3-Liter-Karton, 55 % Unterschied."),
+        "en": ("Four of the 27 are carried by more than one store, and that is "
+               "where the information is: Maybach Grauer Burgunder costs "
+               "exactly the same at Globus, Lidl and Netto (3.83 €/l) — a "
+               "producer price nobody undercuts. Bree Chardonnay, by contrast, "
+               "costs 14% more at Netto than at the specialist Schäpers. "
+               "Across the whole bag-in-box range the spread is wider still: "
+               "Grand Sud Merlot, in nobody's top three, runs from 3.33 €/l at "
+               "Lidl to 5.16 €/l at Combi — the identical 3-litre box, 55% "
+               "apart.")},
 
     # ------------------------------------------------------------------- PET
     "pet_title": {"de": "PET-Flaschen: gesuchte Belege",

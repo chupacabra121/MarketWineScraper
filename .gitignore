@@ -20,6 +20,7 @@ data/*
 # The workbook is left out — it is rebuilt from these two files.
 !data/germany-pet-bib.csv
 !data/germany-wine-all.csv
+!data/germany-bib-price-matrix.csv
 exports/
 .cache/
 http_cache/
