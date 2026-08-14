@@ -12,6 +12,9 @@ dependencies = [
     "httpx[http2]>=0.27",
     "selectolax>=0.3.21",
     "playwright>=1.40",
+    # The German shops answer Brotli to any browser-shaped Accept-Encoding, and
+    # an undecoded response looks like an empty catalogue rather than an error.
+    "brotli>=1.1",
 ]
 
 [project.optional-dependencies]

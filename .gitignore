@@ -15,6 +15,11 @@ data/*
 # The price series is the one thing a rebuilt database cannot regenerate, so it
 # is committed. Text, append-mostly, and it diffs.
 !data/price-history.csv
+# Same reasoning for the German study: it is a dated observation of a market,
+# and re-running it next month measures next month rather than reproducing this.
+# The workbook is left out — it is rebuilt from these two files.
+!data/germany-pet-bib.csv
+!data/germany-wine-all.csv
 exports/
 .cache/
 http_cache/

@@ -450,3 +450,114 @@ before it is fixed. That is what stops a fix from being quietly undone: the
 Kaufland volume rule, the alcohol-free rule that used to match `12.0% alcool`,
 and the producer "Aurelia Visinescu" not being read as a cherry all survive as
 tests rather than as remembered intentions.
+
+## The German study: PET and bag-in-box
+
+A second, self-contained study lives in `winescraper/de/`. It asks a narrower
+question than the Romanian scraper does — **what does wine in a PET bottle or a
+bag-in-box cost in German retail** — and answers it with its own vocabulary,
+its own deposit rules and its own Excel deliverable.
+
+```bash
+python -m pip install -e .              # brotli is now a hard dependency
+python -m winescraper.de.run --workbook
+```
+
+`run` writes `exports/germany/`: the in-scope rows, the full catalogue they were
+separated from, JSONL, and `Deutscher-Weinmarkt-PET-BagInBox.xlsx`. Useful
+flags: `--source lidl`, `--limit N`, `--delay`, `--no-cache`, `--no-check`,
+`--no-pet-probe`.
+
+### What it found
+
+Verified live on 2026-08-14, 806 wines collected, 191 of them PET or
+bag-in-box.
+
+- **Bag-in-Box is a real German format with a settled price structure.** The
+  3-litre box is the standard gebinde — 138 of the 159 still-wine offers. Prices
+  run 4.99–39.00 € (median 11.99), which is **1.66–13.00 €/litre, median 4.00**.
+- **The entry price is 4.99 € for 3 litres**, Lidl's Vino Tinto / Vino Rosado /
+  Vino Blanco. That is 1.66 €/litre, or **1.25 € per 0.75-litre-bottle
+  equivalent** — the floor of the German market.
+- **Wine in PET bottles is not sold in German retail.** Not one offer, in any
+  source. This is a null result, so it is evidenced rather than asserted: see
+  below.
+- **Price per litre falls with gebinde size**, as it does for drinks generally:
+  1.5 l runs 6.66–9.33 €/l, 3 l 1.66–13.00, 5 l 3.16–5.50.
+- **The cheapest wine per litre is not bag-in-box at all** — it is the 1.5-litre
+  Getränkekarton at Lidl, 1.99 € for 1.5 l (1.33 €/l), undercutting even the
+  4.99 € box.
+
+### Retailer status
+
+| Retailer | Channel | Coverage | How |
+| --- | --- | --- | --- |
+| **Lidl** | Discounter | 636 wines, 25 bag-in-box | Public search API at `lidl.de/q`. States the container in the product title, publishes its own price per litre, and exposes a `Flaschengröße` facet that reaches the large formats directly. The only mainstream chain reachable. |
+| **METRO Deutschland** | Cash & carry | 24 wines, 20 bag-in-box | Same `searchdiscover` API as the Romanian sibling, store 00015. **Net trade prices**: unlike Romania, the German site returns `sellingPriceInfo: null` to an anonymous caller, so only the search response's ex-VAT price is available. Never mixed with the consumer figures. |
+| **Wein Schäpers** | Fachhandel | 66 bag-in-box | Shopware 6 bag-in-box category. |
+| **WirWinzer** | Fachhandel | 66 bag-in-box | Winery-direct marketplace; sells boxes in multi-packs. |
+| **Weinfreunde** | Fachhandel | 14 bag-in-box | Hawesko group's volume shop; stands in for hawesko.de, which blocks us. |
+| Kaufland, REWE, ALDI SÜD, Hawesko, Vinatis | — | none | HTTP 403 to datacentre addresses, plain HTTP and real Chromium alike. |
+| Getränke Hoffmann, trinkgut, Fristo | Getränkemarkt | none | **Publish no prices at all.** The beverage chains where bag-in-box sells hardest run store-locator sites with a weekly leaflet. That is a fact about German beverage retail, not a scraping failure. |
+| Vinello | Fachhandel | none | Lists 59 boxes but server-renders a price for 3; product pages answer 410. A 3-of-59 sample is not a price point. |
+| Amazon.de, Müller | — | none | Return the products and strip or defer every price. |
+
+Every exclusion is carried into the workbook's *Nicht erreichbar* sheet, so a
+reader can tell "does not stock the format" from "could not be reached".
+
+### The Pfand, and why PET would have one
+
+Germany's single-use deposit is 0.25 €, and since 1 January 2022 it applies to
+**every** single-use plastic beverage bottle of 0.1–3.0 litres regardless of
+contents — which is what would bring wine in PET into the scheme. Bag-in-box is
+exempt under VerpackG §31(4) as an *ökologisch vorteilhafte* container, being a
+carton around a foil bladder; so is the Getränkekarton, the pouch, and single-use
+glass. For every offer in this study, therefore, shelf price and till price are
+the same. `winescraper/de/packaging.py` keeps the container question and the
+deposit question apart, exactly as the Romanian `deposit.py` does for SGR.
+
+### Establishing a null result
+
+Half the brief was PET, and the collection returned none. An absence produced by
+a filter is a weak claim, so `winescraper/de/petprobe.py` searches for it
+directly — seven phrasings a German retailer would use, across Lidl and METRO —
+and records what came back. 357 products, 5 of them genuinely PET, **none of
+them wine**: the PET hits are raspberry syrup and Acqua Panna. The supply side
+confirms the shape: Flaschenland and comparable suppliers sell empty 250 ml and
+750 ml PET wine bottles to wineries and caterers, unfilled. In German retail the
+large gebinde is the box and the small one is glass; PET holds no shelf position
+between them.
+
+### Data quality
+
+The same posture as the Romanian side: a field that cannot be read is left null,
+and a price is checked against the retailer that published it.
+
+German price-labelling law requires a Grundpreis, so most listings advertise
+their own price per litre — computed server-side from the same price and size we
+parsed. `winescraper.de.validate` compares it against ours on every row that has
+both. **776 of 806 rows cross-check, and all of them agree.**
+
+That check earned its place. Wein Schäpers prints the price and the Grundpreis
+in adjacent elements; the parser took the cheaper of the two out of the combined
+block, and recorded a 15.17 € box at 5.06 €. Every affected row looked entirely
+plausible on its own — only the retailer's own arithmetic showed it. Two other
+faults came from the same direction and are now tests:
+
+- Lidl reports a six-bottle Bordeaux case as **4.5 litres**, which the
+  size-implies-a-box rule read as a large format. Pack size and unit size are
+  now kept apart.
+- WirWinzer's `data-bottle-count` sometimes counts boxes and sometimes counts
+  0.75-litre equivalents — "4er Paket … (12 L)" reports 4, but "BiB-Paket …
+  (9 L)" reports 12. Dividing blindly produced a 0.75-litre bag-in-box. The
+  count is now trusted only when it divides out to something that could be a
+  box, and the split is left unclaimed otherwise.
+
+Glühwein, Sangria, sparkling and dessert wine are collected but held out of the
+still-wine figures: Glühwein sells in the same 10-litre box at a third of the
+litre price, and averaging the two would describe neither.
+
+`data/germany-pet-bib.csv` and `data/germany-wine-all.csv` are committed for the
+same reason `price-history.csv` is — they are a dated observation of a market,
+and re-running next month measures next month rather than reproducing this. The
+workbook is not: it is rebuilt from them.
