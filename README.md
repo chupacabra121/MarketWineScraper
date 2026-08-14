@@ -566,6 +566,32 @@ looks like. Schäpers' Hauswein line is the same pattern at a specialist.
 Netto's whole box range is Peter Mertes' Maybach and Bree, bought as branded
 goods, and it sits at 3.83 €/l.
 
+### Trade format
+
+Each source carries a `trade_format` — the four German retail is normally
+reported in, plus one the four do not cover:
+
+| Format | Sources | EUR/l, cheapest box |
+| --- | --- | ---: |
+| Cash & Carry | METRO *(net, B2B)* | 1.23 |
+| Hypermarket (SB-Warenhaus) | Globus | 1.66 |
+| Discounter | Lidl, NORMA, Netto | 1.66 |
+| Supermarket & Convenience | Combi, EDEKA *(no boxes)* | 1.93 |
+| Wine specialist | Wein Schäpers, Weinfreunde, WirWinzer | 2.37 |
+
+The three wine specialists are not forced into the four. Calling them
+supermarkets to make the taxonomy come out even would misdescribe the price
+points they set — and one of them, Schäpers at 2.37 €/l, undercuts two of the
+three discounters.
+
+Two classifications are worth stating because they are contestable. **Combi is
+a supermarket, not a hypermarket**: Wikipedia's list files it under hypermarket,
+but [Bartels-Langness runs Combi as a supermarket chain and famila as its
+SB-Warenhaus format](https://www.bela.de/en/company-group/sales-divisions/retail/),
+so the operator's own description wins. And **NORMA appears as a discounter via
+norma24.de**, its online arm; the stores publish nothing, so the row is the
+same chain reached by a different door.
+
 ### Coverage: every chain on the Wikipedia list
 
 Each chain on [*List of supermarket chains in

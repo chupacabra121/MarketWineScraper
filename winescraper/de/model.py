@@ -34,6 +34,11 @@ class Listing:
     external_id: str
     name: str
     url: str | None = None
+    #: The four-way trade format German retail is reported in — cash & carry,
+    #: hypermarket, discounter, supermarket/convenience — plus "specialist" for
+    #: the wine shops those four do not cover. Declared here rather than beside
+    #: ``channel`` because it carries a default and the fields above do not.
+    trade_format: str = "specialist"
 
     # --- commercial -------------------------------------------------------
     price: float | None = None       # shelf price as published, EUR
@@ -158,7 +163,8 @@ class Listing:
 
 #: Column order shared by the CSV export and the workbook's data sheet.
 EXPORT_COLUMNS = [
-    "retailer", "retailer_label", "channel", "external_id", "name", "brand",
+    "retailer", "retailer_label", "channel", "trade_format",
+    "external_id", "name", "brand",
     "packaging", "packaging_label", "volume_l", "pack_count", "is_pack",
     "price", "currency", "price_basis", "pfand", "price_incl_pfand",
     "price_per_litre", "price_per_litre_incl_pfand", "bottle_equivalent_price",

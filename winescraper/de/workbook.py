@@ -318,24 +318,47 @@ def _sheet_by_retailer(book: Workbook, scope: list[Listing], t: Texts) -> None:
     sheet = book.create_sheet(t("sheet_retailers"))
     row = _title(sheet, t("retailers_title"), t("retailers_sub"))
 
+    # Grouped by trade format, cheapest format first: the question the sheet
+    # gets asked is "which kind of shop is cheapest", and sorting by name
+    # buries the answer.
     rows = []
-    for label, group in sorted(_by(scope, lambda x: x.retailer_label).items()):
-        stats = _stats(_litre_prices(group))
-        prices = sorted(x.price for x in group if x.price is not None)
-        rows.append((
-            label, t.channel(group[0].channel), t.basis(group[0].price_basis),
-            stats["n"], prices[0] if prices else None,
-            prices[-1] if prices else None,
-            stats["min"], stats["median"], stats["max"],
-        ))
+    grouped = _by(scope, lambda x: x.trade_format)
+    order = sorted(grouped, key=lambda f: min(_litre_prices(grouped[f]) or [1e9]))
+    for trade_format in order:
+        for label, group in sorted(_by(grouped[trade_format],
+                                       lambda x: x.retailer_label).items()):
+            stats = _stats(_litre_prices(group))
+            prices = sorted(x.price for x in group if x.price is not None)
+            rows.append((
+                t.trade_format(trade_format), label,
+                t.basis(group[0].price_basis),
+                stats["n"], prices[0] if prices else None,
+                prices[-1] if prices else None,
+                stats["min"], stats["median"], stats["max"],
+            ))
     row = _table(sheet, row,
-                 [t("h_retailer"), t("h_channel"), t("h_price_basis"),
+                 [t("h_trade_format"), t("h_retailer"), t("h_price_basis"),
                   t("h_offers"), t("h_price_min"), t("h_price_max"),
                   t("h_litre_min"), t("h_litre_med"), t("h_litre_max")],
                  rows, {5: EUR, 6: EUR, 7: EUR_L, 8: EUR_L, 9: EUR_L})
 
+    # And the formats themselves, which is the comparison the rows above only
+    # imply.
+    summary = []
+    for trade_format in order:
+        group = grouped[trade_format]
+        stats = _stats(_litre_prices(group))
+        summary.append((
+            t.trade_format(trade_format),
+            len({x.retailer_label for x in group}), stats["n"],
+            stats["min"], stats["median"], stats["max"]))
+    row = _table(sheet, row,
+                 [t("h_trade_format"), t("h_stores_count"), t("h_offers"),
+                  t("h_litre_min"), t("h_litre_med"), t("h_litre_max")],
+                 summary, {4: EUR_L, 5: EUR_L, 6: EUR_L})
+
     _note(sheet, row, t("retailers_note"), span=9)
-    _autosize(sheet, [24, 18, 14, 11, 12, 12, 12, 14, 12])
+    _autosize(sheet, [26, 24, 14, 11, 12, 12, 12, 14, 12])
 
 
 #: Why a cheaper listing was kept out of the per-store ranking. Keyed by the
@@ -364,8 +387,8 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
     the reason, so the sheet cannot quietly flatter a store.
     """
     sheet = book.create_sheet(t("sheet_cheapest"))
-    row = _title(sheet, t("cheapest_title"), t("cheapest_sub"), span=9)
-    row = _note(sheet, row, t("cheapest_intro"), span=9)
+    row = _title(sheet, t("cheapest_title"), t("cheapest_sub"), span=10)
+    row = _note(sheet, row, t("cheapest_intro"), span=10)
 
     boxes = [x for x in scope
              if x.packaging == pkg.BAG_IN_BOX and x.price_per_litre is not None]
@@ -384,6 +407,7 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
         ranked_pairs.extend((label, x) for x in top)
         for position, listing in enumerate(top, start=1):
             rows.append((
+                t.trade_format(listing.trade_format) if position == 1 else "",
                 label if position == 1 else "", position,
                 listing.name,
                 f"{listing.volume_l:g} l" if listing.volume_l else t("not_stated"),
@@ -393,7 +417,8 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
                 t.country(listing.country) if listing.country else "",
             ))
         if not top:
-            rows.append((label, 1, t("cheapest_none"), "", None, None, None, "", ""))
+            rows.append((t.trade_format(group[0].trade_format), label, 1,
+                         t("cheapest_none"), "", None, None, None, "", ""))
 
         # Anything cheaper than the third-placed wine that a filter removed.
         ceiling = top[-1].price_per_litre if top else float("inf")
@@ -408,19 +433,19 @@ def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
                              listing.price, listing.price_per_litre, reason))
 
     row = _table(sheet, row,
-                 [t("h_retailer"), t("h_rank"), t("h_wine"), t("h_size"),
-                  t("h_price"), t("h_per_litre"), t("h_per_bottle"),
-                  t("h_colour"), t("h_origin")],
-                 rows, {5: EUR, 6: EUR_L, 7: EUR})
+                 [t("h_trade_format"), t("h_retailer"), t("h_rank"),
+                  t("h_wine"), t("h_size"), t("h_price"), t("h_per_litre"),
+                  t("h_per_bottle"), t("h_colour"), t("h_origin")],
+                 rows, {6: EUR, 7: EUR_L, 8: EUR})
 
-    row = _note(sheet, row, t("cheapest_note"), span=9)
+    row = _note(sheet, row, t("cheapest_note"), span=10)
 
     if excluded:
         _table(sheet, row,
                [t("h_retailer"), t("h_excluded"), t("h_size"), t("h_price"),
                 t("h_per_litre"), t("h_why")],
                excluded, {4: EUR, 5: EUR_L})
-    _autosize(sheet, [24, 7, 58, 10, 11, 12, 11, 10, 14])
+    _autosize(sheet, [26, 24, 7, 56, 10, 11, 12, 11, 10, 14])
     return [(label, listing) for label, listing in ranked_pairs]
 
 

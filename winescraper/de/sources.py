@@ -139,6 +139,27 @@ UNAVAILABLE = [
 ]
 
 
+# --- trade formats ----------------------------------------------------------
+#: The four formats German retail is normally reported in, plus the one this
+#: study needs and they do not cover.
+#:
+#: The line between them is sales area, following the EHI/GfK convention: a
+#: Discounter runs a short range at a fixed low price, a Supermarkt is roughly
+#: 400–2,500 m², and an SB-Warenhaus — hypermarket — is a food-led store big
+#: enough to carry a broad non-food range beside it. Cash & carry is wholesale:
+#: trade customers, net prices, no consumers.
+CASH_AND_CARRY = "cash_and_carry"
+HYPERMARKET = "hypermarket"
+DISCOUNTER = "discounter"
+SUPERMARKET = "supermarket_convenience"
+#: Wine specialists are not one of the four and are not forced into them. Three
+#: of the ten sources here are specialists, and calling them supermarkets to
+#: make the taxonomy come out even would misdescribe the price points they set.
+SPECIALIST = "specialist"
+
+TRADE_FORMATS = (CASH_AND_CARRY, HYPERMARKET, DISCOUNTER, SUPERMARKET, SPECIALIST)
+
+
 class Source:
     """One retailer's catalogue."""
 
@@ -146,6 +167,8 @@ class Source:
     label: str = ""
     #: Where in German retail this sits — the axis price points differ along.
     channel: str = "fachhandel"
+    #: One of :data:`TRADE_FORMATS`.
+    trade_format: str = SPECIALIST
     #: gross = VAT-inclusive consumer price; net = ex-VAT trade price.
     price_basis: str = "gross"
     note: str = ""
@@ -184,6 +207,7 @@ class Source:
             retailer=self.key,
             retailer_label=self.label,
             channel=self.channel,
+            trade_format=self.trade_format,
             price_basis=self.price_basis,
             external_id=str(external_id),
             name=re.sub(r"\s+", " ", name).strip(),
@@ -260,6 +284,8 @@ class LidlSource(Source):
     key = "lidl"
     label = "Lidl"
     channel = "discounter"
+    # Discounter: short range, fixed low price, ~1,100 m2.
+    trade_format = DISCOUNTER
     note = "Public search API; container stated in the product title."
 
     BASE = "https://www.lidl.de/q/api/search"
@@ -579,6 +605,8 @@ class GlobusSource(Shopware6Source):
     key = "globus"
     label = "Globus"
     channel = "supermarkt"
+    # SB-Warenhaus: food-led, >5,000 m2, broad non-food alongside.
+    trade_format = HYPERMARKET
     note = ("Full wine catalogue (~2,900 wines) on Shopware 6; boxes marked "
             "'BIB' in the product name.")
 
@@ -603,6 +631,8 @@ class SchaepersSource(Shopware6Source):
     key = "schaepers"
     label = "Wein Schäpers"
     channel = "fachhandel"
+    # Wine specialist.
+    trade_format = SPECIALIST
     note = "Bag-in-Box category; description repeats the format."
 
     START_URL = "https://wein-schaepers.de/bag-in-box/?limit=48"
@@ -624,6 +654,8 @@ class WirWinzerSource(ShopwareSource):
     key = "wirwinzer"
     label = "WirWinzer"
     channel = "fachhandel"
+    # Winery-direct marketplace, not a retailer in the trade-format sense.
+    trade_format = SPECIALIST
     note = "Winery-direct marketplace; boxes sold in multi-packs."
 
     START_URL = "https://wirwinzer.de/weine/bag-in-box-weinschlauch"
@@ -709,6 +741,8 @@ class NormaSource(ShopwareSource):
     key = "norma"
     label = "NORMA (norma24)"
     channel = "discounter"
+    # Discounter. norma24.de is its online arm; the stores are the same chain.
+    trade_format = DISCOUNTER
     note = "Online shop; schema.org microdata gives price and SKU structurally."
 
     START_URL = "https://www.norma24.de/de/c/weine-1926"
@@ -776,6 +810,8 @@ class NettoSource(ShopwareSource):
     key = "netto"
     label = "Netto Marken-Discount"
     channel = "discounter"
+    # Discounter (EDEKA-owned; not the Danish Salling "Netto").
+    trade_format = DISCOUNTER
     note = ("Intershop catalogue endpoint, whole wine category in one call. "
             "Needs the homepage's session cookies first.")
 
@@ -871,6 +907,8 @@ class Edeka24Source(ShopwareSource):
     key = "edeka24"
     label = "EDEKA (edeka24)"
     channel = "supermarkt"
+    # Supermarket group; edeka24.de is the national online shop.
+    trade_format = SUPERMARKET
     note = ("National online shop. Category pages render 30 products and page "
             "by scrolling, so coverage is the first 30 per wine category.")
 
@@ -929,6 +967,10 @@ class CombiSource(ShopwareSource):
     key = "combi"
     label = "Combi"
     channel = "supermarkt"
+    # Supermarket, not hypermarket: Bartels-Langness runs Combi as a
+    # supermarket chain and famila as its SB-Warenhaus format. Wikipedia's
+    # list files Combi under hypermarket, which does not match the operator.
+    trade_format = SUPERMARKET
     note = "Bartels-Langness delivery shop; full beer/wine/spirits aisle."
 
     BASE = "https://www.combi.de"
@@ -995,6 +1037,8 @@ class WeinfreundeSource(Source):
     key = "weinfreunde"
     label = "Weinfreunde"
     channel = "fachhandel"
+    # Wine specialist (Hawesko group).
+    trade_format = SPECIALIST
     note = "Hawesko group; Bag-in-Box category page."
 
     START_URL = "https://www.weinfreunde.de/c/weine/bag-in-box/"
@@ -1070,6 +1114,8 @@ class MetroSource(Source):
     key = "metro"
     label = "METRO Deutschland"
     channel = "cash_and_carry"
+    # Wholesale: trade customers only, net prices.
+    trade_format = CASH_AND_CARRY
     price_basis = "net"
     note = "Trade prices, net of VAT. Store 00015 (widest wine assortment)."
 

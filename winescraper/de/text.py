@@ -49,6 +49,24 @@ CHANNEL_LABELS = {
     },
 }
 
+#: The four trade formats German retail is reported in, plus the specialists.
+TRADE_FORMAT_LABELS = {
+    "de": {
+        "cash_and_carry": "Cash & Carry",
+        "hypermarket": "SB-Warenhaus (Hypermarkt)",
+        "discounter": "Discounter",
+        "supermarket_convenience": "Supermarkt & Convenience",
+        "specialist": "Weinfachhandel",
+    },
+    "en": {
+        "cash_and_carry": "Cash & Carry",
+        "hypermarket": "Hypermarket",
+        "discounter": "Discounter",
+        "supermarket_convenience": "Supermarket & Convenience",
+        "specialist": "Wine specialist",
+    },
+}
+
 COLOUR_LABELS = {
     "de": {"rot": "Rotwein", "weiss": "Weißwein", "rose": "Roséwein"},
     "en": {"rot": "Red", "weiss": "White", "rose": "Rosé"},
@@ -253,6 +271,7 @@ STRINGS: dict[str, dict[str, str]] = {
                       "en": "All PET/bag-in-box listings, by source."},
     "h_retailer": {"de": "Händler", "en": "Retailer"},
     "h_channel": {"de": "Kanal", "en": "Channel"},
+    "h_trade_format": {"de": "Betriebsform", "en": "Trade format"},
     "h_price_basis": {"de": "Preisbasis", "en": "Price basis"},
     "basis_net": {"de": "netto (B2B)", "en": "net (B2B)"},
     "basis_gross": {"de": "brutto", "en": "gross"},
@@ -683,6 +702,9 @@ class Texts:
 
     def channel(self, value: str) -> str:
         return CHANNEL_LABELS[self.language].get(value, value)
+
+    def trade_format(self, value: str) -> str:
+        return TRADE_FORMAT_LABELS[self.language].get(value, value)
 
     def colour(self, value: str) -> str:
         return COLOUR_LABELS[self.language].get(value, value)

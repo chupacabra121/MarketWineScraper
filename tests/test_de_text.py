@@ -12,7 +12,7 @@ from winescraper.de import packaging as pkg
 from winescraper.de.sources import UNAVAILABLE
 from winescraper.de.text import (CHANNEL_LABELS, COLOUR_LABELS, LANGUAGES,
                                  PACKAGING_LABELS, REASON_HEADINGS, STRINGS,
-                                 Texts)
+                                 TRADE_FORMAT_LABELS, Texts)
 
 
 class TestCompleteness:
@@ -35,6 +35,7 @@ class TestCompleteness:
         (CHANNEL_LABELS, "CHANNEL_LABELS"),
         (COLOUR_LABELS, "COLOUR_LABELS"),
         (REASON_HEADINGS, "REASON_HEADINGS"),
+        (TRADE_FORMAT_LABELS, "TRADE_FORMAT_LABELS"),
     ])
     def test_vocabularies_cover_the_same_keys(self, mapping, name):
         for language in LANGUAGES:
@@ -57,6 +58,14 @@ class TestVocabularies:
         for language in LANGUAGES:
             for channel in channels:
                 assert channel in CHANNEL_LABELS[language], (language, channel)
+
+    def test_every_trade_format_a_source_uses_has_a_label(self):
+        from winescraper.de.sources import TRADE_FORMATS, all_sources
+        used = {cls.trade_format for cls in all_sources().values()}
+        assert used <= set(TRADE_FORMATS), used - set(TRADE_FORMATS)
+        for language in LANGUAGES:
+            for value in TRADE_FORMATS:
+                assert value in TRADE_FORMAT_LABELS[language], (language, value)
 
     def test_every_unavailable_reason_has_a_heading(self):
         reasons = {reason for _, _, _, reason, _ in UNAVAILABLE}
