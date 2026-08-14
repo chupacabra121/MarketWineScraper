@@ -336,6 +336,101 @@ def _sheet_by_retailer(book: Workbook, scope: list[Listing], t: Texts) -> None:
     _autosize(sheet, [24, 18, 14, 11, 12, 12, 12, 14, 12])
 
 
+#: Why a cheaper listing was kept out of the per-store ranking. Keyed by the
+#: product type that caused it, plus the pack case.
+_EXCLUSION_KEYS = {
+    "gluehwein": "excl_gluehwein", "sangria": "excl_sangria",
+    "sparkling": "excl_sparkling", "dessert": "excl_dessert",
+}
+
+
+def _rank_key(listing: Listing) -> tuple:
+    """Sort order for the cheapest-first ranking.
+
+    Ties on price per litre are the normal case rather than the exception —
+    Lidl prices three colours of its own-brand box identically, and Schäpers
+    five — so the tie-break has to be deterministic or the sheet reshuffles
+    between runs for no reason. Cheapest per litre first, then the smaller pack
+    price, then the name.
+    """
+    return (listing.price_per_litre, listing.price or 0.0, listing.name)
+
+
+def _sheet_cheapest(book: Workbook, scope: list[Listing], t: Texts,
+                    per_store: int = 3) -> None:
+    """The three cheapest bag-in-box wines at each store, per litre.
+
+    Three filters are applied and each is stated rather than assumed, because
+    all three change the answer at some store:
+
+    * **Still wine only.** Glühwein sells in the same 10-litre box at a third of
+      the litre price, and would take first place at METRO and WirWinzer.
+    * **Single boxes only.** A "4er Paket" has an honest price per litre and is
+      still not a thing a shopper can buy one of.
+    * **METRO stays but is marked.** Its prices are net of VAT, so its 1.42 €/l
+      is not the same kind of number as Lidl's 1.66.
+
+    Whatever a filter removes that would have ranked is listed underneath with
+    the reason, so the sheet cannot quietly flatter a store.
+    """
+    sheet = book.create_sheet(t("sheet_cheapest"))
+    row = _title(sheet, t("cheapest_title"), t("cheapest_sub"), span=9)
+    row = _note(sheet, row, t("cheapest_intro"), span=9)
+
+    boxes = [x for x in scope
+             if x.packaging == pkg.BAG_IN_BOX and x.price_per_litre is not None]
+    # Identity, not equality: Listing compares by value, and two listings of the
+    # same wine at the same price in different shops are equal without being the
+    # same row.
+    eligible = {id(x) for x in boxes
+                if x.product_type == "still" and not x.is_pack}
+
+    rows: list[tuple] = []
+    excluded: list[tuple] = []
+    for label, group in sorted(_by(boxes, lambda x: x.retailer_label).items()):
+        ranked = sorted([x for x in group if id(x) in eligible], key=_rank_key)
+        top = ranked[:per_store]
+        for position, listing in enumerate(top, start=1):
+            rows.append((
+                label if position == 1 else "", position,
+                listing.name,
+                f"{listing.volume_l:g} l" if listing.volume_l else t("not_stated"),
+                listing.price, listing.price_per_litre,
+                listing.bottle_equivalent_price,
+                t.colour(listing.colour) if listing.colour else "",
+                t.country(listing.country) if listing.country else "",
+            ))
+        if not top:
+            rows.append((label, 1, t("cheapest_none"), "", None, None, None, "", ""))
+
+        # Anything cheaper than the third-placed wine that a filter removed.
+        ceiling = top[-1].price_per_litre if top else float("inf")
+        for listing in sorted(group, key=_rank_key):
+            if id(listing) in eligible or listing.price_per_litre > ceiling:
+                continue
+            reason = (t("excl_pack") if listing.is_pack
+                      else t(_EXCLUSION_KEYS.get(listing.product_type,
+                                                 "excl_gluehwein")))
+            excluded.append((label, listing.name,
+                             f"{listing.volume_l:g} l" if listing.volume_l else "",
+                             listing.price, listing.price_per_litre, reason))
+
+    row = _table(sheet, row,
+                 [t("h_retailer"), t("h_rank"), t("h_wine"), t("h_size"),
+                  t("h_price"), t("h_per_litre"), t("h_per_bottle"),
+                  t("h_colour"), t("h_origin")],
+                 rows, {5: EUR, 6: EUR_L, 7: EUR})
+
+    row = _note(sheet, row, t("cheapest_note"), span=9)
+
+    if excluded:
+        _table(sheet, row,
+               [t("h_retailer"), t("h_excluded"), t("h_size"), t("h_price"),
+                t("h_per_litre"), t("h_why")],
+               excluded, {4: EUR, 5: EUR_L})
+    _autosize(sheet, [24, 7, 58, 10, 11, 12, 11, 10, 14])
+
+
 def _sheet_competing_formats(book: Workbook, everything: list[Listing],
                              t: Texts) -> None:
     """What bag-in-box is priced against on the same shelf."""
@@ -525,6 +620,7 @@ def build_workbook(listings: list[Listing], path: Path,
     book.remove(book.active)
 
     _sheet_summary(book, scope, listings, stamp, t)
+    _sheet_cheapest(book, scope, t)
     _sheet_segments(book, scope, t)
     _sheet_by_format(book, scope, t)
     _sheet_by_retailer(book, scope, t)

@@ -87,6 +87,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "sheet_segments": {"de": "Segmente", "en": "Price segments"},
     "sheet_sizes": {"de": "Nach Gebindegröße", "en": "By container size"},
     "sheet_retailers": {"de": "Nach Händler", "en": "By retailer"},
+    "sheet_cheapest": {"de": "Günstigste drei je Händler",
+                       "en": "Cheapest three per store"},
     "sheet_formats": {"de": "Formatvergleich", "en": "Format comparison"},
     "sheet_pet": {"de": "PET-Prüfung", "en": "PET evidence"},
     "sheet_unavailable": {"de": "Nicht erfasst", "en": "Not covered"},
@@ -291,6 +293,71 @@ STRINGS: dict[str, dict[str, str]] = {
     "cmp_litre": {"de": "1-l-Flasche (Literwein)",
                   "en": "1 l bottle (German 'Literflasche')"},
     "cmp_carton": {"de": "Getränkekarton", "en": "Carton (Tetra Pak)"},
+
+    # -------------------------------------------------------------- cheapest
+    "cheapest_title": {
+        "de": "Die drei günstigsten Bag-in-Box je Händler",
+        "en": "The three cheapest bag-in-box wines at each store"},
+    "cheapest_sub": {
+        "de": ("Gereiht nach EUR je Liter. Nur Stillwein in einzelnen Boxen — "
+               "was ausgeschlossen wurde, steht in der zweiten Tabelle."),
+        "en": ("Ranked by EUR per litre. Still wine in single boxes only — what "
+               "was excluded is listed in the second table.")},
+    "cheapest_intro": {
+        "de": ("Drei Dinge würden die Reihung verfälschen und sind deshalb "
+               "ausgenommen. Glühwein kostet je Liter rund ein Drittel des "
+               "Weins daneben und stünde sonst bei zwei Händlern auf Platz "
+               "eins. Mehrfachpakete haben einen korrekten Literpreis, sind "
+               "aber nichts, was man einzeln kaufen kann. Und METRO ist Cash & "
+               "Carry mit Nettopreisen ohne MwSt. — die Zeilen bleiben "
+               "enthalten, sind aber als netto gekennzeichnet und nicht direkt "
+               "mit den übrigen vergleichbar."),
+        "en": ("Three things would distort the ranking and are held out. Mulled "
+               "wine runs at about a third of the litre price of the wine "
+               "beside it and would otherwise take first place at two stores. "
+               "Multi-packs have a correct price per litre but are not "
+               "something you can buy singly. And METRO is cash & carry, "
+               "quoting net prices excluding VAT — its rows stay in, marked as "
+               "net, but they are not directly comparable with the rest.")},
+    "h_rank": {"de": "Platz", "en": "Rank"},
+    "h_wine": {"de": "Wein", "en": "Wine"},
+    "h_size": {"de": "Gebinde", "en": "Size"},
+    "h_price": {"de": "Preis", "en": "Price"},
+    "h_per_litre": {"de": "EUR/Liter", "en": "EUR/litre"},
+    "h_per_bottle": {"de": "je 0,75 l", "en": "per 0.75 l"},
+    "h_colour": {"de": "Farbe", "en": "Colour"},
+    "h_origin": {"de": "Herkunft", "en": "Origin"},
+    "h_link": {"de": "Link", "en": "Link"},
+    "h_excluded": {"de": "Ausgeschlossene günstigere Angebote",
+                   "en": "Cheaper listings held out of the ranking"},
+    "h_why": {"de": "Grund", "en": "Reason"},
+    "excl_gluehwein": {"de": "Glühwein, nicht Stillwein",
+                       "en": "mulled wine, not still wine"},
+    "excl_sangria": {"de": "Sangria, nicht Stillwein",
+                     "en": "sangria, not still wine"},
+    "excl_sparkling": {"de": "Schaumwein, nicht Stillwein",
+                       "en": "sparkling, not still wine"},
+    "excl_dessert": {"de": "Süßwein, andere Preisskala",
+                     "en": "dessert wine, different price scale"},
+    "excl_pack": {"de": "Mehrfachpaket, nicht einzeln erhältlich",
+                  "en": "multi-pack, not sold as a single box"},
+    "cheapest_note": {
+        "de": ("Der Einstiegspreis ist bei Lidl und Globus mit 4,99 € für 3 "
+               "Liter identisch — 1,66 €/l, also 1,25 € je 0,75-l-Flasche. "
+               "Beide Discounter und beide Supermärkte liegen damit unter dem "
+               "günstigsten Fachhändler. Bemerkenswert ist die Spreizung "
+               "innerhalb des Discountkanals: Netto beginnt erst bei 3,83 €/l, "
+               "mehr als das Doppelte von Lidl, weil Netto keine Eigenmarke in "
+               "der Box führt, sondern nur Marken wie Maybach und Bree."),
+        "en": ("The entry price is identical at Lidl and Globus — 4.99 € for 3 "
+               "litres, or 1.66 €/l, which is 1.25 € per 0.75-litre-bottle "
+               "equivalent. Both discounters and both supermarkets undercut the "
+               "cheapest specialist. The spread inside the discount channel is "
+               "the striking part: Netto starts at 3.83 €/l, more than twice "
+               "Lidl, because it carries no own-brand box at all — only brands "
+               "like Maybach and Bree.")},
+    "cheapest_none": {"de": "kein Angebot in dieser Auswahl",
+                      "en": "no listing in this selection"},
 
     # ------------------------------------------------------------------- PET
     "pet_title": {"de": "PET-Flaschen: gesuchte Belege",

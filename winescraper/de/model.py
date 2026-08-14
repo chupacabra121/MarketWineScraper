@@ -115,7 +115,13 @@ class Listing:
         """
         if self.pack_count > 1:
             return True
-        return bool(re.search(r"\bpaket\b|\bset\b|\d+er\b|\bkiste\b",
+        # "paket" without a leading boundary, because German compounds it:
+        # NORMA's cheapest box of all is an "Aktionspaket", and requiring a word
+        # boundary would have ranked a bundle as its cheapest single wine.
+        #
+        # The bottle count is limited to two digits so that a German vintage
+        # written the German way — "2024er Riesling" — is not read as a pack.
+        return bool(re.search(r"paket\b|\bset\b|\b\d{1,2}er\b|\bkiste\b",
                               self.name or "", re.I))
 
     @property
@@ -124,9 +130,15 @@ class Listing:
 
         A 3-litre box at 9.99 EUR is 2.50 EUR per standard bottle, and that
         comparison is the whole commercial argument for the format.
+
+        Computed from price and volume rather than from ``price_per_litre``,
+        which is already rounded: the 4.99 EUR entry box is 1.2475 EUR per
+        bottle, and rounding twice turns that into 1.24 instead of 1.25.
         """
-        per_litre = self.price_per_litre
-        return round(per_litre * 0.75, 2) if per_litre is not None else None
+        if self.price is None or not self.volume_l:
+            return None
+        litres = self.volume_l * max(self.pack_count, 1)
+        return round(self.price / litres * 0.75, 2)
 
     def to_row(self) -> dict[str, Any]:
         """Flatten for CSV/Excel, with the derived figures materialised."""

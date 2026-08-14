@@ -469,6 +469,14 @@ separated from, JSONL, and the workbook in **both German and English** —
 `German-Wine-Market-PET-BagInBox.xlsx`. Same sheets, same rows, same numbers;
 only the wording differs. `--language en` builds just one.
 
+The *Cheapest three per store* sheet ranks by EUR/litre and states its filters
+rather than applying them quietly: mulled wine is held out (it sells in the same
+10-litre box at a third of the litre price and would take first place at METRO
+and WirWinzer), so are multi-packs (an honest per-litre price for something you
+cannot buy one of), and METRO stays in but is marked *net*. Everything a filter
+removed that would otherwise have ranked is listed underneath with the reason,
+so the sheet cannot quietly flatter a store.
+
 Every user-visible string lives in `winescraper/de/text.py` rather than in the
 sheet code, and `tests/test_de_text.py` holds the two vocabularies to the same
 shape — a footnote added to one language has to be added to the other, and a
@@ -501,6 +509,27 @@ Verified live on 2026-08-14. **4,176 wines collected, 293 of them bag-in-box.**
   4.99 €/litre against the 3-litre box's 3.83.
 - **The cheapest wine per litre is neither format.** It is the 1.5-litre
   Getränkekarton at Lidl, 1.99 € for 1.5 l (1.33 €/l).
+
+Ranking each store's three cheapest boxes per litre (the *Cheapest three per
+store* sheet) puts the channels in an order that is not the expected one:
+
+| Store | Cheapest box | EUR/l | per 0.75 l |
+| --- | --- | ---: | ---: |
+| METRO *(net, B2B)* | Cerro de La Cruz, 10 l | 1.42 | 1.06 |
+| Globus | BIB Tinto de la Tierra de Castilla, 3 l | 1.66 | 1.25 |
+| Lidl | Vino Tinto Tempranillo, 3 l | 1.66 | 1.25 |
+| Combi | Terra Molino Airén/Sauvignon, 3 l | 1.93 | 1.45 |
+| Wein Schäpers | Hauswein Rosé, 3 l | 2.37 | 1.78 |
+| NORMA | Winebox Müller-Thurgau, 3 l | 3.00 | 2.25 |
+| Weinfreunde | Biqueirão Branco, 5 l | 3.16 | 2.37 |
+| Netto | Maybach Grauer Burgunder, 3 l | 3.83 | 2.87 |
+| WirWinzer | Bag-in-Box Riesling, 3 l | 4.13 | 3.10 |
+
+The spread *inside* the discount channel is wider than the gap between
+channels: Netto's entry box costs 2.3× Lidl's, because Netto carries no
+own-brand box at all — its whole bag-in-box range is Maybach, Bree, Grand Sud
+and Weinhaus Müller. A specialist (Schäpers, 2.37 €/l) undercuts two of the
+three discounters.
 
 ### Coverage: every chain on the Wikipedia list
 
