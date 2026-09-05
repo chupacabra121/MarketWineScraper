@@ -1,0 +1,172 @@
+{
+ "Sogrape": {
+  "http": "000",
+  "team_links": []
+ },
+ "Bodega Pietroasa": {
+  "http": "000",
+  "team_links": []
+ },
+ "Cricova": {
+  "http": "200",
+  "team_links": []
+ },
+ "Ostrovit": {
+  "http": "200",
+  "team_links": [
+   "https://www.domeniileostrov.ro/pages/despre-domeniile-ostrov"
+  ]
+ },
+ "Rovinex": {
+  "http": "000",
+  "team_links": []
+ },
+ "Vinarte": {
+  "http": "200",
+  "team_links": [
+   "https://vinarte.ro/despre/"
+  ]
+ },
+ "Vinexport": {
+  "http": "200",
+  "team_links": []
+ },
+ "Carpatvin": {
+  "http": "200",
+  "team_links": [
+   "https://www.carpatvin.ro/despre/"
+  ]
+ },
+ "Chateau Vartely": {
+  "http": "200",
+  "team_links": []
+ },
+ "Bucium": {
+  "http": "000",
+  "team_links": []
+ },
+ "Domeniile Panciu": {
+  "http": "200",
+  "team_links": [
+   "https://domeniilepanciu.ro/despre-noi/",
+   "https://www.domeniilepanciu.ro/despre-noi/"
+  ]
+ },
+ "Doina Vin": {
+  "http": "000",
+  "team_links": []
+ },
+ "Rifco Import": {
+  "http": "200",
+  "team_links": []
+ },
+ "Corcova": {
+  "http": "200",
+  "team_links": [
+   "https://corcova.ro/istoria/"
+  ]
+ },
+ "DC Segarcea": {
+  "http": "200",
+  "team_links": []
+ },
+ "Casa Isarescu": {
+  "http": "200",
+  "team_links": []
+ },
+ "Castel Mimi": {
+  "http": "200",
+  "team_links": [
+   "https://castelmimi.md/despre-noi/"
+  ]
+ },
+ "Alexandrion": {
+  "http": "200",
+  "team_links": [
+   "http://alexandriongroup.com/cine-suntem/#1789",
+   "http://alexandriongroup.com/cine-suntem/#1965",
+   "http://alexandriongroup.com/cine-suntem/#1980",
+   "http://alexandriongroup.com/cine-suntem/#1983",
+   "http://alexandriongroup.com/cine-suntem/#1992",
+   "http://alexandriongroup.com/cine-suntem/#1994"
+  ]
+ },
+ "Suvorov Vin": {
+  "http": "200",
+  "team_links": []
+ },
+ "Barefoot Cellars": {
+  "http": "200",
+  "team_links": []
+ },
+ "Domeniul Bogdan": {
+  "http": "200",
+  "team_links": [
+   "https://domeniulbogdan.ro/",
+   "https://domeniulbogdan.ro/despre-noi/"
+  ]
+ },
+ "Crama Basilescu": {
+  "http": "200",
+  "team_links": [
+   "https://cramabasilescu.ro/istoric"
+  ]
+ },
+ "Avincis Vinuri": {
+  "http": "200",
+  "team_links": []
+ },
+ "Crama La Salina": {
+  "http": "200",
+  "team_links": []
+ },
+ "Unicom": {
+  "http": "200",
+  "team_links": [
+   "https://www.unicomholding.ro/carduri-de-carburant",
+   "https://www.unicomholding.ro/despre-noi"
+  ]
+ },
+ "Antinori": {
+  "http": "200",
+  "team_links": []
+ },
+ "Fautor": {
+  "http": "000",
+  "team_links": []
+ },
+ "Caraprodvin": {
+  "http": "000",
+  "team_links": []
+ },
+ "Grand Tokaj": {
+  "http": "000",
+  "team_links": []
+ },
+ "Vinia": {
+  "http": "200",
+  "team_links": []
+ },
+ "Domeniul Burcilor": {
+  "http": "200",
+  "team_links": []
+ },
+ "Prodimas": {
+  "http": "000",
+  "team_links": []
+ },
+ "WineRo": {
+  "http": "000",
+  "team_links": []
+ },
+ "Casa De Vinuri Ciumbrud": {
+  "http": "000",
+  "team_links": []
+ },
+ "Domeniile Blaga": {
+  "http": "200",
+  "team_links": [
+   "https://domeniileblaga.ro/domeniile-blaga-despre-noi/"
+  ]
+ }
+}
