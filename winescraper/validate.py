@@ -13,6 +13,7 @@ import statistics
 from collections import defaultdict
 from dataclasses import dataclass
 
+from . import deposit
 from .normalize import fold, looks_like_wine, _WINE_WORDS
 
 # A 0.75 L bottle below this is almost certainly a parsing error or a per-100ml
@@ -181,7 +182,55 @@ def check(rows: list[dict]) -> list[Finding]:
                     retailer_key=retailer,
                     external_id=str(r.get("external_id") or "")))
 
+    findings += _deposit_findings(rows)
     return findings
+
+
+def _deposit_findings(rows: list[dict]) -> list[Finding]:
+    """Rows whose till price cannot be stated, and sources changing their basis.
+
+    The deposit is 0.50 lei on a wine that can cost 11 — big enough that a row
+    with an undecided deposit is a row with an undecided price, and quiet enough
+    that nothing else would notice.
+    """
+    findings: list[Finding] = []
+    unknown: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        if r.get("deposit") is None:
+            unknown[r["retailer"]].append(r)
+    for retailer, group in sorted(unknown.items()):
+        if deposit.included(retailer) is None:
+            detail = ("no evidence whether this source's prices already carry "
+                      "the deposit, so it is left off rather than guessed")
+        else:
+            detail = (f"{len(group)} listing(s) state no bottle size, so the "
+                      "deposit cannot be decided")
+        findings.append(Finding("deposit unknown", retailer,
+                                f"{len(group)} listing(s)", detail,
+                                retailer_key=retailer))
+
+    # A source that starts folding the deposit into its price shifts every one
+    # of its wines by 0.50 at once. Against a stable retailer median that is a
+    # visible step, and it would otherwise read as a market-wide price rise.
+    for retailer, group in _by_retailer(rows).items():
+        if deposit.included(retailer) is not False or len(group) < 30:
+            continue
+        marked = sum(1 for r in group
+                     if deposit._MARKED.search(r.get("name") or ""))
+        priced = [r for r in group if r.get("price")]
+        if marked and marked == len(priced):
+            findings.append(Finding(
+                "deposit basis", retailer, f"{marked} listing(s)",
+                "every listing now names the deposit; check the price has not "
+                "started including it", retailer_key=retailer))
+    return findings
+
+
+def _by_retailer(rows: list[dict]) -> dict[str, list[dict]]:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        grouped[r["retailer"]].append(r)
+    return grouped
 
 
 def summarise(findings: list[Finding]) -> dict[str, int]:

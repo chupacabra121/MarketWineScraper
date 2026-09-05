@@ -399,3 +399,38 @@ def test_drinks_that_are_not_a_bottle_of_wine_are_excluded(title):
 ])
 def test_strong_wines_and_lookalikes_survive(title):
     assert looks_like_wine(title, "Vinuri/Vin rosu") is True
+
+
+def test_a_ten_litre_cask_written_without_a_unit():
+    """Selgros writes its bag-in-box sizes as a bare number: "10,0"."""
+    assert parse_volume_l("VINUL STRAMOSESC ALB BIB DEMIDULCE 10,0") == 10.0
+    assert parse_volume_l("CRAMA STARMINA SAUVIGNON BLANC BIB 10,00") == 10.0
+
+
+def test_an_unlabelled_strength_is_not_read_as_a_cask():
+    """Above five litres only a whole number is a size; 13,5 is alcohol."""
+    assert parse_volume_l("VIN ROSU SEC 13,5") is None
+    assert parse_volume_l("VIN ALB DEMISEC 9,5") is None
+
+
+def test_a_size_abbreviated_onto_a_word():
+    """Selgros compresses titles: "S.0,75" is a 0.75 L bottle, sec."""
+    assert parse_volume_l("STIH SAUV. BLANC S.0,75") == 0.75
+    assert parse_volume_l("POMMERY SAMPANIE BR.0,75") == 0.75
+    # but a decimal cut out of a longer number still must not match
+    assert parse_volume_l("SERAFIM 12L SEC 0.750 L") == 0.75
+
+
+def test_a_case_of_bottles_is_still_excluded():
+    """"Bax" is a case — the whole point of the rule."""
+    cat = "Vinuri / Vinuri Albe"
+    assert not looks_like_wine("BAX 6 sticle vin alb sec 0,75 L", cat)
+    assert not looks_like_wine("CASTEL HUNIADE Vin Alb Demisec SGR 6 x 0,187 L", cat)
+
+
+def test_metros_misspelt_bag_in_box_is_wine():
+    """METRO writes "Bax in box". The multipack rule read that as a case and
+    dropped the whole Vinul Stramosesc 10 L range."""
+    cat = "Alimentare / Bauturi Alcoolice, Vinuri & Bere / Vinuri Albe"
+    assert looks_like_wine("VINUL STRAMOSESC Vin Alb Demisec Bax in box 10 L", cat)
+    assert looks_like_wine("CRAMA CEPTURA CERVUS CEPTURUM Vin Rose Demisec Bax in box 3 L", cat)

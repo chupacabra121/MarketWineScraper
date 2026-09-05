@@ -3,13 +3,12 @@
 # repository free of a growing binary while the price series itself stays in
 # version control as diffable text.
 
-name: Daily prices
+name: Prices
 
+# Manual only. There was a nightly schedule here; it is deliberately gone —
+# collection runs when someone asks for it, not on its own. Restoring it means
+# putting back a `schedule:` block with a cron expression, nothing else.
 on:
-  schedule:
-    # 05:20 UTC — after Romanian retailers have published the day's prices, and
-    # off the hour, where GitHub's scheduler is most congested.
-    - cron: "20 5 * * *"
   workflow_dispatch:
     inputs:
       sites:

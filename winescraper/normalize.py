@@ -130,7 +130,9 @@ _NOT_WINE_PATTERNS = [
     # Multipacks and gift sets price a bundle, not a bottle
     # "Pachet vin alb ... (3+1) x 0.75 l" prices a bundle. A single bottle in a
     # gift box is still one bottle, so gift packaging alone is not excluded.
-    r"^pachet\b|\bbax\b|\b\d+\s*x\s*\d|\(\d\+\d\)",
+    # "Bax" is a case of bottles — except when METRO misspells "Bag in box",
+    # which it does on five wines, one of them a whole 10 L range.
+    r"^pachet\b|\bbax\b(?!\s*in\s*box)|\b\d+\s*x\s*\d|\(\d\+\d\)",
     # Two bottles priced as one line: "Kanga Mateus Rose 0.75L + Mateus Rose
     # 0.187L". A gift box has one volume in its title; a pack has two.
     r"\d\s*(l|ml)\b.*\+.*\d\s*(l|ml)\b",
@@ -242,12 +244,21 @@ def parse_volume_l(text: str) -> float | None:
     # that the number is not immediately followed by a '%'.
     # Three decimals are common in cash & carry titles: Selgros writes the
     # 187 ml miniature as "0,187" and Profi writes "0,750 Lit".
-    for match in re.finditer(r"(?<![\d.,%])(\d{1,2}[.,]\d{1,3})(?!\s*%)(?![\d.,])", folded):
+    # The lookbehind rejects a decimal cut out of a longer number but not one
+    # abbreviated onto a word, which is how Selgros writes "STIH SAUV. BLANC
+    # S.0,75".
+    for match in re.finditer(r"(?<![\d,%])(?<!\d\.)(\d{1,2}[.,]\d{1,3})(?!\s*%)(?![\d.,])",
+                             folded):
         try:
             candidate = float(match.group(1).replace(",", "."))
         except ValueError:
             continue
         if 0.1 <= candidate <= 5.0:
+            return round(candidate, 4)
+        # Above five litres only a whole number is a cask: Selgros writes its
+        # ten-litre boxes "10,0". An unlabelled "13,5" at that size is alcohol
+        # by volume with the sign left off, and no wine comes in 13.5 litres.
+        if 5.0 < candidate <= 10.0 and candidate == int(candidate):
             return round(candidate, 4)
     return None
 

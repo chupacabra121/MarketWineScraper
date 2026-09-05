@@ -40,6 +40,9 @@ class WineProduct:
     # "catalogue" for a permanently listed product, "promo" for weekly-offer-only listings.
     offer_type: str = "catalogue"
     in_stock: bool | None = None
+    # The SGR deposit as the retailer states it, for the few that state one.
+    # Left None everywhere else, where it is read off the container instead.
+    deposit: float | None = None
 
     # --- wine attributes -------------------------------------------------
     brand: str | None = None

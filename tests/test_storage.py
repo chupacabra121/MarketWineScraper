@@ -1,5 +1,6 @@
 """Tests for SQLite persistence and price history."""
 
+import csv
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -221,3 +222,97 @@ def test_one_retailer_running_does_not_delist_the_others(store):
     store.upsert(make(31.0, external_id="a"))          # testmart alone re-runs
     store.conn.commit()
     assert {r["retailer"] for r in store.latest()} == {"testmart", "othermart"}
+
+
+def test_a_recycled_product_id_does_not_relabel_past_prices(tmp_path):
+    """Carrefour reused two product ids for different wines on consecutive
+    days. The name used to be read off `products` when the history was
+    exported, so yesterday's row picked up today's wine — a price series that
+    silently rewrites its own past."""
+    history = tmp_path / "h.csv"
+    with Store(tmp_path / "a.sqlite") as store:
+        store.save_all([make(18.49, external_id="10005615",
+                             name="Vin rose Sigillum Moldaviae, Demisec, 0.75L")])
+        _observed_on(store, "2026-08-11T09:36:21+00:00")
+        # Same id, different wine, different price.
+        store.save_all([make(21.99, external_id="10005615",
+                             name="Vin alb demidulce Domeniile Recas Gewurtztraminer")])
+        store.export_history(history)
+
+    rows = list(csv.DictReader(history.open(encoding="utf-8")))
+    assert [r["name"] for r in rows] == [
+        "Vin rose Sigillum Moldaviae, Demisec, 0.75L",
+        "Vin alb demidulce Domeniile Recas Gewurtztraminer",
+    ]
+
+
+def test_an_exported_name_survives_a_round_trip(tmp_path):
+    history = tmp_path / "h.csv"
+    with Store(tmp_path / "a.sqlite") as store:
+        store.save_all([make(18.49, external_id="x", name="Vin rosu sec Alira, 0.75L")])
+        store.export_history(history)
+    with Store(tmp_path / "b.sqlite") as store:
+        store.import_history(history)
+        store.export_history(history)
+    rows = list(csv.DictReader(history.open(encoding="utf-8")))
+    assert [r["name"] for r in rows] == ["Vin rosu sec Alira, 0.75L"]
+
+
+def test_history_written_before_the_name_column_still_exports(tmp_path):
+    """Databases predating the column fall back to the product name, which is
+    the best that can be recovered for them."""
+    path = tmp_path / "old.sqlite"
+    with Store(path) as store:
+        store.save_all([make(30.0, external_id="a", name="Vin alb sec 0.75L")])
+        store.conn.execute("UPDATE price_observations SET name = NULL")
+        store.conn.commit()
+        store.export_history(tmp_path / "h.csv")
+    rows = list(csv.DictReader((tmp_path / "h.csv").open(encoding="utf-8")))
+    assert rows[0]["name"] == "Vin alb sec 0.75L"
+
+
+def test_importing_the_series_does_not_delist_the_catalogue(tmp_path):
+    """A history import creates products from observations alone.
+
+    Those carry the observation's date, and a few of them dated later than the
+    last scrape used to redefine "today" for the whole retailer, dropping every
+    genuinely current listing out of ``latest``.
+    """
+    from winescraper.models import WineProduct
+
+    store = Store(tmp_path / "w.sqlite")
+    for n in range(3):
+        store.upsert(WineProduct(retailer="shop", external_id=str(n),
+                                 name=f"Vin {n}", price=10.0 + n, volume_l=0.75),
+                     run_id=store.start_run("shop"))
+    assert len(store.latest()) == 3
+
+    history = tmp_path / "history.csv"
+    history.write_text(
+        ",".join(Store.HISTORY_COLUMNS) + "\n"
+        # A price recorded the next day, for a product the scrape never saw.
+        "2099-01-02T00:00:00+00:00,shop,99,Vin nou,12.0,RON,,0,catalogue,1,0.5\n")
+    store.import_history(history)
+
+    still_listed = {r["external_id"] for r in store.latest()}
+    assert still_listed == {"0", "1", "2"}
+    store.close()
+
+
+def test_the_deposit_survives_a_history_round_trip(tmp_path):
+    from winescraper.models import WineProduct
+
+    source = Store(tmp_path / "a.sqlite")
+    source.upsert(WineProduct(retailer="metro", external_id="1", name="Vin SGR 0,75 L",
+                              price=13.31, volume_l=0.75))
+    source.upsert(WineProduct(retailer="metro", external_id="2",
+                              name="Cotnari Bag in Box 3 L", price=42.15, volume_l=3.0))
+    path = tmp_path / "history.csv"
+    source.export_history(path)
+    source.close()
+
+    copy = Store(tmp_path / "b.sqlite")
+    copy.import_history(path)
+    deposits = {r["external_id"]: r["deposit"] for r in copy.latest()}
+    assert deposits == {"1": 0.5, "2": 0.0}
+    copy.close()

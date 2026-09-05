@@ -85,9 +85,9 @@ Verified live on 2026-08-10.
 | **Penny (REWE)** | Small permanent range (~30 wines) | Server-rendered category pages. |
 | **Kaufland** | Weekly offers only | No shoppable grocery catalogue in Romania; the weekly leaflet is published as structured HTML, so promo wines are scraped and tagged `offer_type=promo`. |
 | **Kaufland via Bolt Food** (`kaufland_bolt`) | Full range (~740 wines) | Bolt Food's public API for the Kaufland Tei store, Bucharest. **Delivery-platform prices**, typically at or above shelf — kept as a separate retailer key so they never mix with shelf data. `provider_id` configurable to point at another store. |
-| **METRO** | Full catalogue (~1,040 wines) | Anonymous `searchdiscover`/`betty-variants` JSON APIs — no login despite the cash & carry model. Prices are VAT-inclusive and deposit-exclusive (`articleGross`); net price and SGR deposit kept in `raw`. National pricing, per-store assortment (default store: Băneasa, ~95% of the range). Grape/region/producer/vintage come structurally; ABV is not published. Many wines carry a 6-bottle minimum order. |
+| **METRO** | Full catalogue (~1,040 wines) | Anonymous `searchdiscover`/`betty-variants` JSON APIs — no login despite the cash & carry model. Prices are VAT-inclusive and deposit-exclusive (`articleGross`); net price kept in `raw`, and the per-article deposit is published — the only source that does, which makes it the reference the packaging rule is checked against. National pricing, per-store assortment (default store: Băneasa, ~95% of the range). Grape/region/producer/vintage come structurally; ABV is not published. Many wines carry a 6-bottle minimum order. |
 | **Penny via Bolt Food** (`penny_bolt`) | ~70 wines | Same Bolt Food API, PENNY Năsăud store. Measured against penny.ro on 27 shared wines: **median price difference +0.0%** — Bolt-Penny prices are shelf prices, so this mainly buys assortment (penny.ro lists only half the range). Glovo's Penny store was checked too and rejected: every one of its 70 products is also on Bolt, and its prices run ~0.50 lei higher (it folds the SGR deposit into the displayed price). |
-| **Profi via Glovo** (`profi_glovo`) | ~70 wines | The only data route into Profi (own site rejects bots; ~1,700 stores, no web shop). Store page is server-rendered with the store/address ids and wine section ids embedded; tiles come from Glovo's public `content/partial` API. **Glovo prices include the 0.50-lei SGR deposit** (measured on Penny). |
+| **Profi via Glovo** (`profi_glovo`) | ~70 wines | The only data route into Profi (own site rejects bots; ~1,700 stores, no web shop). Store page is server-rendered with the store/address ids and wine section ids embedded; tiles come from Glovo's public `content/partial` API. Prices were once assumed to fold in the 0.50-lei SGR deposit, from a measurement on Glovo's *Penny* store; the August 2026 shelf audit puts four Profi lines on our figures exactly and none 0.50 above, so this source is treated as deposit-exclusive like the rest. |
 | **Supeco via Glovo** (`supeco_glovo`) | ~100 wines | Same Glovo base, Suceava store — the single Supeco on any delivery platform. Supeco's own site is blocked at the edge. |
 | Profi (direct), Supeco (direct) | none | Sites reject/block automated requests — covered via the `*_glovo` adapters above instead. |
 | Lidl | none | Online shop carries no wine; absent from Bolt Food and Glovo too. |
@@ -105,14 +105,39 @@ Adding a retailer later is a drop-in: subclass `Adapter`, set `key`, implement
 Each row is one wine at one retailer at one point in time:
 
 `retailer, external_id, name, brand, producer, price, currency, list_price,
-on_promotion, offer_type, unit_price, price_per_litre, volume_l, abv, vintage,
-colour, sweetness, sparkling, country, region, grape_varieties, in_stock,
-category_path, url, image_url, location, scraped_at`
+on_promotion, offer_type, unit_price, price_per_litre, deposit, volume_l, abv,
+vintage, colour, sweetness, sparkling, country, region, grape_varieties,
+in_stock, category_path, url, image_url, location, scraped_at`
 
 Attribute coverage varies by retailer because it depends on what each site puts
 in its listings. Price, name, URL and volume are near-universal; grape variety
 and region are dense on Auchan and sparse elsewhere. Fields that cannot be read
 with confidence are left `NULL` rather than guessed.
+
+### The SGR deposit
+
+`price` is what the retailer publishes. Almost none of them publish the 0.50-lei
+deposit Romania charges on every bottle and PET of 0.1–3 litres, so `deposit`
+records what has to be added to reach the till price, and everything the reports
+show — `winescraper.pricing` — is the sum of the two. On a 2-litre wine at 12 lei
+the deposit is 4% of the price, larger than most of the differences these numbers
+get used to argue about.
+
+Two questions decide it, and `winescraper/deposit.py` keeps them apart. Whether
+the *container* carries a deposit is a packaging question: bottles and PET do,
+bag-in-box does not, and at 3 litres the box is the rule rather than the
+exception — 119 of the 122 three-litre wines here are boxes. That rule is read
+off METRO, which publishes a deposit per article, and a test holds it to
+reproducing 986 of those 990 figures. Whether the *retailer* has already added it
+is a pricing question with a different answer per shop, so each is recorded with
+its evidence; METRO's gross is `round(net × 1.21, 2)` on all 990 articles and
+therefore carries no deposit, Freshful states "+ 0.5 Lei" outright, and the rest
+are settled against the August 2026 shelf audit, which matches 111 of our prices
+to the cent and only 2 at exactly 0.50 above.
+
+Sezamo and Supeco (Glovo) are in neither group. No deposit is added to them and
+`check` reports them as unsettled rather than guessing, so their prices may sit
+0.50 low against the rest.
 
 `price_per_litre` is computed from price and volume, which makes bottles of
 different sizes comparable across retailers. `wine_key` links listings of the
@@ -126,7 +151,9 @@ SQLite with three tables:
   the `wine_key` that links the same wine across retailers
 - `price_observations` — appended **only when the price, promotion flag or stock
   status actually changes**, so history stays meaningful instead of growing by
-  one identical row per product per run
+  one identical row per product per run. Each observation stores the name the
+  wine had at the time: retailers recycle product ids, and reading the name off
+  `products` when exporting rewrote past prices to match the present product
 - `runs` — per-run bookkeeping and errors
 
 ## Politeness

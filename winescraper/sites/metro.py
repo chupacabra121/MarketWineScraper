@@ -241,6 +241,9 @@ class MetroAdapter(Adapter):
             list_price=list_price,
             on_promotion=list_price is not None,
             in_stock=availability in ("AVAILABLE", "LIMITED") if availability else None,
+            # METRO is the only source that prints a deposit per article, which
+            # makes it the reference the packaging rule is checked against.
+            deposit=parse_price(final.get("emptiesGross")) or 0.0,
             brand=(bundle.get("brandName") or "").strip() or None,
             producer=(ch.get(CH_PRODUCER) or "").strip() or None,
             volume_l=self._volume_l(bundle),
